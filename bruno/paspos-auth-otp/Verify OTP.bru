@@ -1,0 +1,47 @@
+meta {
+  name: Verify OTP
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/verify-otp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "phone": "{{phone}}",
+    "otp": "{{otp}}"
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body && body.token) {
+    bru.setEnvVar("authToken", body.token);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("verify otp returns token", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.token).to.be.a("string");
+  });
+}

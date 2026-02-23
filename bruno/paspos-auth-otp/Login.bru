@@ -1,0 +1,47 @@
+meta {
+  name: Login
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "phone": "{{phone}}",
+    "password": "{{password}}"
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body && body.token) {
+    bru.setEnvVar("authToken", body.token);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("login returns token", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.token).to.be.a("string");
+  });
+}
