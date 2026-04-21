@@ -50,6 +50,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'phone_verified_at',
+        'avatar_path',
         'password',
     ];
 

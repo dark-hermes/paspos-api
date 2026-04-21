@@ -6,9 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\RequestPhoneUpdateOtpRequest;
 use App\Http\Requests\ResendOtpRequest;
 use App\Http\Requests\ResetPasswordRequest;
+use App\Http\Requests\UpdatePasswordRequest;
+use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\VerifyOtpRequest;
+use App\Http\Requests\VerifyPhoneUpdateOtpRequest;
+use App\Http\Resources\AuthUserResource;
 use App\Jobs\SendWhatsappOtpJob;
 use App\Models\PhoneVerificationToken;
 use App\Models\User;
@@ -16,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -212,6 +218,138 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Logged out successfully.',
+        ]);
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => new AuthUserResource($request->user()),
+        ]);
+    }
+
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $user = User::query()->findOrFail($request->user()->getAuthIdentifier());
+        $data = $request->validated();
+        $attributes = [];
+
+        if (array_key_exists('full_name', $data) && is_string($data['full_name'])) {
+            $attributes['name'] = $data['full_name'];
+        }
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar_path) {
+                Storage::disk('public')->delete($user->avatar_path);
+            }
+
+            $attributes['avatar_path'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        if ($attributes !== []) {
+            $user->forceFill($attributes)->save();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile updated successfully.',
+            'data' => new AuthUserResource($user->fresh()),
+        ]);
+    }
+
+    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
+    {
+        $user = User::query()->findOrFail($request->user()->getAuthIdentifier());
+        $data = $request->validated();
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Current password is invalid.',
+            ], 422);
+        }
+
+        $user->forceFill([
+            'password' => $data['new_password'],
+        ])->save();
+
+        $currentAccessTokenId = $request->user()?->currentAccessToken()?->id;
+
+        if ($currentAccessTokenId) {
+            $user->tokens()->where('id', '!=', $currentAccessTokenId)->delete();
+        } else {
+            $user->tokens()->delete();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password updated successfully.',
+        ]);
+    }
+
+    public function requestPhoneUpdateOtp(RequestPhoneUpdateOtpRequest $request): JsonResponse
+    {
+        $user = User::query()->findOrFail($request->user()->getAuthIdentifier());
+        $data = $request->validated();
+
+        if ($data['new_phone'] === $user->phone) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'New phone number must be different from current phone number.',
+            ], 422);
+        }
+
+        $rateLimitResponse = $this->ensureOtpRateLimit($data['new_phone'], 'phone_update');
+
+        if ($rateLimitResponse) {
+            return $rateLimitResponse;
+        }
+
+        $otp = $this->createOtp($data['new_phone'], 'phone_update');
+
+        SendWhatsappOtpJob::dispatch($data['new_phone'], $otp, 'phone_update');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Phone update OTP sent to WhatsApp.',
+        ]);
+    }
+
+    public function verifyPhoneUpdateOtp(VerifyPhoneUpdateOtpRequest $request): JsonResponse
+    {
+        $user = User::query()->findOrFail($request->user()->getAuthIdentifier());
+        $data = $request->validated();
+
+        if ($data['new_phone'] === $user->phone) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'New phone number must be different from current phone number.',
+            ], 422);
+        }
+
+        if (! $this->isValidOtp($data['new_phone'], 'phone_update', $data['otp'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid or expired OTP.',
+            ], 422);
+        }
+
+        $user->forceFill([
+            'phone' => $data['new_phone'],
+            'email' => $data['new_phone'] . '@paspos.local',
+            'phone_verified_at' => now(),
+        ])->save();
+
+        PhoneVerificationToken::query()
+            ->where('phone', $data['new_phone'])
+            ->where('purpose', 'phone_update')
+            ->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Phone number updated successfully.',
+            'data' => new AuthUserResource($user->fresh()),
         ]);
     }
 

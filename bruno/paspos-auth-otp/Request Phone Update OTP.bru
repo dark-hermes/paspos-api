@@ -1,17 +1,27 @@
 meta {
-  name: Get Me
+  name: Request Phone Update OTP
   type: http
-  seq: 6
+  seq: 9
 }
 
-get {
-  url: {{baseUrl}}/api/me
-  body: none
+post {
+  url: {{baseUrl}}/api/me/phone/request-otp
+  body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "new_phone": "{{newPhone}}"
+  }
 }
 
 settings {
@@ -24,9 +34,8 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 
-  test("get me returns user id", function() {
+  test("request phone otp returns success", function() {
     const body = res.getBody();
     expect(body.status).to.equal("success");
-    expect(body.data.id).to.be.a("number");
   });
 }

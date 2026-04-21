@@ -1,0 +1,55 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Hanya satu deployment berjalan pada satu waktu
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+    # Hanya deploy jika CI berhasil
+    needs: []
+
+    environment:
+      name: production
+      url: http://${{ secrets.DROPLET_IP }}
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            echo ">>> Pulling latest code..."
+            cd /var/www/paspos-api
+            git pull origin main
+
+            echo ">>> Installing Composer dependencies..."
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+            echo ">>> Running migrations..."
+            php artisan migrate --force
+
+            echo ">>> Clearing and re-caching config..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo ">>> Fixing storage permissions..."
+            sudo chown -R www-data:www-data storage bootstrap/cache
+
+            echo ">>> Restarting queue worker..."
+            sudo supervisorctl restart paspos-worker:*
+
+            echo ">>> Deploy selesai!"

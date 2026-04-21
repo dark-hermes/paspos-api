@@ -1,0 +1,43 @@
+meta {
+  name: Verify Phone Update OTP
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/me/phone/verify-otp
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "new_phone": "{{newPhone}}",
+    "otp": "{{newPhoneOtp}}"
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("verify phone otp returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.phone).to.be.a("string");
+  });
+}

@@ -1,17 +1,27 @@
 meta {
-  name: Get Me
+  name: Update Profile
   type: http
-  seq: 6
+  seq: 7
 }
 
-get {
+patch {
   url: {{baseUrl}}/api/me
-  body: none
+  body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "full_name": "{{fullName}}"
+  }
 }
 
 settings {
@@ -24,9 +34,9 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 
-  test("get me returns user id", function() {
+  test("update profile returns success", function() {
     const body = res.getBody();
     expect(body.status).to.equal("success");
-    expect(body.data.id).to.be.a("number");
+    expect(body.data.full_name).to.equal(bru.getEnvVar("fullName"));
   });
 }

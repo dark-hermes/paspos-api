@@ -1,17 +1,21 @@
 meta {
-  name: Get Me
+  name: Update Avatar
   type: http
-  seq: 6
+  seq: 11
 }
 
-get {
+patch {
   url: {{baseUrl}}/api/me
-  body: none
+  body: multipart-form
   auth: bearer
 }
 
 auth:bearer {
   token: {{authToken}}
+}
+
+body:multipart-form {
+  avatar: @file({{avatarFilePath}})
 }
 
 settings {
@@ -24,9 +28,9 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 
-  test("get me returns user id", function() {
+  test("update avatar returns avatar url", function() {
     const body = res.getBody();
     expect(body.status).to.equal("success");
-    expect(body.data.id).to.be.a("number");
+    expect(body.data.avatar_url).to.be.a("string");
   });
 }
