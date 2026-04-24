@@ -55,7 +55,7 @@ tests/
   Feature/AuthOtpTest.php
   Feature/CreateAdminUserCommandTest.php
 bruno/
-  paspos-auth-otp/
+  paspos/
 ```
 
 ## Setup Lokal
@@ -230,6 +230,18 @@ Semua endpoint API menggunakan prefix `/api`.
 | PATCH | `/api/users/{user}` | Update user |
 | DELETE | `/api/users/{user}` | Hapus user |
 
+### Protected Member Resource (`auth:sanctum`)
+
+#### Address Resource
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/member/addresses` | List address milik member |
+| POST | `/api/member/addresses` | Create address baru |
+| GET | `/api/member/addresses/{address}` | Detail address |
+| PATCH/PUT | `/api/member/addresses/{address}` | Update address |
+| DELETE | `/api/member/addresses/{address}` | Hapus address |
+
 ## Aturan Otorisasi Role
 
 ### Store CRUD
@@ -243,6 +255,11 @@ Semua endpoint API menggunakan prefix `/api`.
 - `branch_admin`: hanya boleh mengelola user dengan role `cashier` dan `member`.
 - `branch_admin`: hanya boleh mengelola user pada store yang sama.
 - `cashier` dan `member`: tidak memiliki akses ke resource user.
+
+### Address CRUD
+
+- Hanya `member` yang bisa mengakses resource ini (`/api/member/addresses`).
+- Setiap member hanya dapat melihat, mengubah, dan menghapus alamat pengiriman miliknya sendiri.
 
 Aturan tambahan saat create/update user oleh `main_admin`:
 
@@ -262,6 +279,7 @@ Aturan tambahan saat create/update user oleh `main_admin`:
 - Store Update: `name`/`type`/`address` (minimal salah satu)
 - User Create: `full_name`, `password`, `password_confirmation`, `role`, `email` (opsional), `phone` (opsional), `store_id` (opsional, tergantung aturan role)
 - User Update: field user bersifat parsial (`full_name`, `email`, `phone`, `password`, `role`, `store_id`)
+- Address Create/Update: `name`, `address`, `receiver_name`, `receiver_phone`, `is_default` (boolean), `notes` (opsional)
 
 ## Data Model Ringkas
 
@@ -285,6 +303,17 @@ Kolom penting:
 - `name` (unique)
 - `address` (nullable)
 - `type` (`main` atau `branch`)
+
+### addresses
+
+Kolom penting:
+
+- `user_id` (relasi ke `users`)
+- `name` (contoh: "Rumah", "Kantor")
+- `address` (alamat lengkap)
+- `receiver_name`
+- `receiver_phone`
+- `is_default` (boolean)
 
 ### phone_verification_tokens
 
@@ -362,25 +391,26 @@ php artisan test --compact tests/Feature/UserResourceApiTest.php
 Collection request API tersedia di:
 
 ```text
-bruno/paspos-auth-otp
+bruno/paspos
 ```
 
 Struktur collection:
 
 ```text
-bruno/paspos-auth-otp/
+bruno/paspos/
   auth/          -> Register, Resend OTP, Verify OTP, Login, Forgot/Reset Password
   profile/       -> Get Me, Update Profile, Update Avatar, Update Password
   phone-update/  -> Request/Verify Phone Update OTP
   admin-stores/  -> List/Create/Get/Update/Delete Store
   admin-users/   -> List/Create/Get/Update/Delete User
+  member-addresses/ -> List/Create/Get/Update/Delete Address
   environments/  -> File environment Bruno
 ```
 
 Sebelum dipakai, sesuaikan environment:
 
 ```text
-bruno/paspos-auth-otp/environments/local.bru
+bruno/paspos/environments/local.bru
 ```
 
 Variabel yang biasanya diubah:

@@ -34,7 +34,7 @@ class UserSeeder extends Seeder
         ]);
 
         // Member
-        User::factory()->assignStore(2)->create([
+        User::factory()->assignStore(2)->withAddress()->create([
             'name' => 'Member',
             'email' => 'member@paspos.local',
             'role' => 'member',

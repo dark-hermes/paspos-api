@@ -23,3 +23,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('stores', StoreController::class);
     Route::apiResource('users', UserController::class);
 });
+
+Route::prefix('member')->name('member.')->group(base_path('routes/member.php'));

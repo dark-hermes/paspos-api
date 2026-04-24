@@ -1,0 +1,26 @@
+meta {
+  name: Create Address
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/member/addresses
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "name": "Rumah",
+    "address": "Jl. Mawar No. 1, Jakarta",
+    "notes": "Pagar hitam",
+    "receiver_name": "Budi",
+    "receiver_phone": "08123456789",
+    "is_default": true
+  }
+}
