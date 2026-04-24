@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -16,7 +15,7 @@ class EmailOtpMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public string $otp)
+    public function __construct(public string $otp, public string $purpose = 'email_verification')
     {
         //
     }
@@ -26,8 +25,14 @@ class EmailOtpMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $subject = match ($this->purpose) {
+            'password_reset' => 'Password Reset OTP',
+            'email_update' => 'Email Update OTP',
+            default => 'Email Verification OTP',
+        };
+
         return new Envelope(
-            subject: 'Email Verification OTP',
+            subject: $subject,
         );
     }
 

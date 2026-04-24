@@ -3,19 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ForgotPasswordAdminRequest;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\RequestEmailUpdateOtpRequest;
 use App\Http\Requests\RequestPhoneUpdateOtpRequest;
 use App\Http\Requests\ResendOtpRequest;
+use App\Http\Requests\ResetPasswordAdminRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Requests\VerifyEmailUpdateOtpRequest;
 use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Requests\VerifyPhoneUpdateOtpRequest;
 use App\Http\Resources\AuthUserResource;
-use App\Http\Requests\RequestEmailUpdateOtpRequest;
-use App\Http\Requests\VerifyEmailUpdateOtpRequest;
 use App\Jobs\SendEmailOtpJob;
 use App\Jobs\SendWhatsappOtpJob;
 use App\Models\EmailVerificationToken;
@@ -133,9 +135,9 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $data = $request->validated();
-        
+
         $user = null;
-        $isEmailLogin = array_key_exists('email', $data) && !empty($data['email']);
+        $isEmailLogin = array_key_exists('email', $data) && ! empty($data['email']);
 
         if ($isEmailLogin) {
             $user = User::query()->where('email', $data['email'])->first();
@@ -150,20 +152,20 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if ($user->role !== 'member' && !$isEmailLogin) {
+        if ($user->role !== 'member' && ! $isEmailLogin) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Admin harus login menggunakan email.',
             ], 403);
         }
 
-        if ($user->role === 'member' && !$isEmailLogin && ! $user->phone_verified_at) {
+        if ($user->role === 'member' && ! $isEmailLogin && ! $user->phone_verified_at) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Phone number is not verified.',
             ], 403);
         }
-        
+
         if ($user->role === 'member' && $isEmailLogin && ! $user->email_verified_at) {
             return response()->json([
                 'status' => 'error',
@@ -227,6 +229,63 @@ class AuthController extends Controller
 
         PhoneVerificationToken::query()
             ->where('phone', $data['phone'])
+            ->where('purpose', 'password_reset')
+            ->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password has been reset.',
+        ]);
+    }
+
+    public function forgotPasswordAdmin(ForgotPasswordAdminRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $rateLimitResponse = $this->ensureEmailOtpRateLimit($data['email'], 'password_reset');
+
+        if ($rateLimitResponse) {
+            return $rateLimitResponse;
+        }
+
+        $otp = $this->createEmailOtp($data['email'], 'password_reset');
+
+        SendEmailOtpJob::dispatch($data['email'], $otp, 'password_reset');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password reset OTP sent to email.',
+        ]);
+    }
+
+    public function resetPasswordAdmin(ResetPasswordAdminRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $user = User::query()->where('email', $data['email'])->first();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        if (! $this->isValidEmailOtp($data['email'], 'password_reset', $data['otp'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid or expired OTP.',
+            ], 422);
+        }
+
+        $user->forceFill([
+            'password' => $data['password'],
+        ])->save();
+
+        $user->tokens()->delete();
+
+        EmailVerificationToken::query()
+            ->where('email', $data['email'])
             ->where('purpose', 'password_reset')
             ->delete();
 
