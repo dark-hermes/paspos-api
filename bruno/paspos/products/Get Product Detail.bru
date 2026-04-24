@@ -1,0 +1,32 @@
+meta {
+  name: Get Product Detail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/products/{{productId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("get product detail returns selected product", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.equal(Number(bru.getEnvVar("productId")));
+  });
+}

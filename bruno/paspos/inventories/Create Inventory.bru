@@ -1,0 +1,56 @@
+meta {
+  name: Create Inventory
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/inventories
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "store_id": {{storeId}},
+    "product_id": {{productId}},
+    "stock": 0,
+    "purchase_price": {{purchasePrice}},
+    "selling_price": {{sellingPrice}},
+    "discount_percentage": 0,
+    "min_stock": 5
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body && body.data && body.data.id) {
+    bru.setEnvVar("inventoryId", String(body.data.id));
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("create inventory returns data id", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.be.a("number");
+  });
+}

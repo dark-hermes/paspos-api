@@ -6,7 +6,7 @@ meta {
 
 patch {
   url: {{baseUrl}}/api/me
-  body: multipart-form
+  body: multipartForm
   auth: bearer
 }
 
@@ -15,22 +15,23 @@ auth:bearer {
 }
 
 body:multipart-form {
-  avatar: @file({{avatarFilePath}})
-}
-
-settings {
-  encodeUrl: true
-  followRedirects: true
+  avatar: @file(C:\Users\herma\Downloads\confusion_matrix.png)
 }
 
 tests {
   test("status is 200", function() {
     expect(res.getStatus()).to.equal(200);
   });
-
+  
   test("update avatar returns avatar url", function() {
     const body = res.getBody();
     expect(body.status).to.equal("success");
     expect(body.data.avatar_url).to.be.a("string");
   });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
 }

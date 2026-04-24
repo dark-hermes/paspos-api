@@ -1,0 +1,56 @@
+meta {
+  name: Create Stock Movement
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/stock-movements
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "src_store_id": {{srcStoreId}},
+    "dest_store_id": {{destStoreId}},
+    "product_id": {{productId}},
+    "quantity": {{movementQuantity}},
+    "type": "{{movementType}}",
+    "title": "{{movementTitle}}",
+    "note": "{{movementNote}}"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body && body.data && body.data.id) {
+    bru.setEnvVar("stockMovementId", String(body.data.id));
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("create stock movement returns data id", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.be.a("number");
+  });
+}

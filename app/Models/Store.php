@@ -29,4 +29,14 @@ class Store extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    /**
+     * Get the inventories for the store.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Inventory, Store>
+     */
+    public function inventories()
+    {
+        return $this->hasMany(Inventory::class);
+    }
 }

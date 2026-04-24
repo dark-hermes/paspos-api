@@ -13,14 +13,19 @@ Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajem
 5. Forgot password dan reset password via OTP WhatsApp untuk member.
 6. Forgot password dan reset password via OTP Email untuk admin.
 7. Endpoint profil user terautentikasi (`/api/me`).
-7. Update profil (`full_name` dan avatar).
-8. Update password user.
-9. Update nomor telepon dengan flow OTP WhatsApp terpisah.
-10. Update email dengan flow OTP Email terpisah.
-9. Role user (`main_admin`, `branch_admin`, `cashier`, `member`) dan relasi ke store.
-10. Command artisan untuk membuat user admin.
-11. CRUD Store berbasis role (khusus `main_admin`).
-12. CRUD User berbasis role (`main_admin` vs `branch_admin`).
+8. Update profil (`full_name` dan avatar).
+9. Update password user.
+10. Update nomor telepon dengan flow OTP WhatsApp terpisah.
+11. Update email dengan flow OTP Email terpisah.
+12. Role user (`main_admin`, `branch_admin`, `cashier`, `member`) dan relasi ke store.
+13. Command artisan untuk membuat user admin.
+14. CRUD Store berbasis role (khusus `main_admin`).
+15. CRUD User berbasis role (`main_admin` vs `branch_admin`).
+16. CRUD Product Category berbasis role (`main_admin`, `branch_admin`).
+17. CRUD Brand berbasis role, dengan upload logo.
+18. CRUD Product berbasis role, dengan upload image, filter by category/brand.
+19. CRUD Inventory berbasis role, dengan filter store/product dan low stock alert.
+20. CRUD Stock Movement berbasis role, dengan auto-update inventory via `StockMovementService`.
 
 ## Stack
 
@@ -37,15 +42,32 @@ Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajem
 ```text
 app/
   Http/
-    Controllers/Api/AuthController.php
+    Controllers/
+      Api/
+        AuthController.php
+        StoreController.php
+        UserController.php
+        ProductCategoryController.php
+        BrandController.php
+        ProductController.php
+        InventoryController.php
+        StockMovementController.php
+      Member/
+        AddressController.php
     Requests/
-    Resources/AuthUserResource.php
+    Resources/
   Jobs/SendWhatsappOtpJob.php
   Models/
     User.php
     Store.php
-    PhoneVerificationToken.php
-  Services/WhatsappBotClient.php
+    ProductCategory.php
+    Brand.php
+    Product.php
+    Inventory.php
+    StockMovement.php
+  Services/
+    WhatsappBotClient.php
+    StockMovementService.php
   Support/PhoneNumberNormalizer.php
 database/
   migrations/
@@ -53,10 +75,19 @@ database/
   seeders/
 routes/
   api.php
+  member.php
   web.php
 tests/
-  Feature/AuthOtpTest.php
-  Feature/CreateAdminUserCommandTest.php
+  Feature/
+    AuthOtpTest.php
+    CreateAdminUserCommandTest.php
+    StoreResourceApiTest.php
+    UserResourceApiTest.php
+    ProductCategoryApiTest.php
+    BrandApiTest.php
+    ProductApiTest.php
+    InventoryApiTest.php
+    StockMovementApiTest.php
 bruno/
   paspos/
 ```
@@ -221,7 +252,7 @@ Semua endpoint API menggunakan prefix `/api`.
 
 ### Protected Admin Resource (`auth:sanctum`)
 
-#### Store Resource
+#### Store Resource (khusus `main_admin`)
 
 | Method | Endpoint | Keterangan |
 | --- | --- | --- |
@@ -240,6 +271,56 @@ Semua endpoint API menggunakan prefix `/api`.
 | GET | `/api/users/{user}` | Detail user |
 | PATCH | `/api/users/{user}` | Update user |
 | DELETE | `/api/users/{user}` | Hapus user |
+
+#### Product Category Resource (`main_admin`, `branch_admin`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/product-categories` | List kategori (search by name) |
+| POST | `/api/product-categories` | Create kategori |
+| GET | `/api/product-categories/{id}` | Detail kategori |
+| PATCH | `/api/product-categories/{id}` | Update kategori |
+| DELETE | `/api/product-categories/{id}` | Hapus kategori |
+
+#### Brand Resource (`main_admin`, `branch_admin`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/brands` | List brand (search by name) |
+| POST | `/api/brands` | Create brand (multipart, logo upload) |
+| GET | `/api/brands/{id}` | Detail brand |
+| PATCH | `/api/brands/{id}` | Update brand |
+| DELETE | `/api/brands/{id}` | Hapus brand (+ hapus file logo) |
+
+#### Product Resource (`main_admin`, `branch_admin`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/products` | List produk (search, filter category/brand) |
+| POST | `/api/products` | Create produk (multipart, image upload) |
+| GET | `/api/products/{id}` | Detail produk |
+| PATCH | `/api/products/{id}` | Update produk |
+| DELETE | `/api/products/{id}` | Hapus produk (+ hapus file image) |
+
+#### Inventory Resource (`main_admin`, `branch_admin`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/inventories` | List inventory (filter store/product, low_stock) |
+| POST | `/api/inventories` | Create inventory |
+| GET | `/api/inventories/{id}` | Detail inventory |
+| PATCH | `/api/inventories/{id}` | Update inventory |
+| DELETE | `/api/inventories/{id}` | Hapus inventory |
+
+#### Stock Movement Resource (`main_admin`, `branch_admin`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/stock-movements` | List movement (filter src/dest/product/type) |
+| POST | `/api/stock-movements` | Create movement (auto-update inventory) |
+| GET | `/api/stock-movements/{id}` | Detail movement |
+| PATCH | `/api/stock-movements/{id}` | Update movement (hanya title/note) |
+| DELETE | `/api/stock-movements/{id}` | Hapus movement (reverse inventory) |
 
 ### Protected Member Resource (`auth:sanctum`)
 
@@ -267,6 +348,14 @@ Semua endpoint API menggunakan prefix `/api`.
 - `branch_admin`: hanya boleh mengelola user pada store yang sama.
 - `cashier` dan `member`: tidak memiliki akses ke resource user.
 
+### Product Category, Brand, Product, Inventory, Stock Movement CRUD
+
+- `main_admin` dan `branch_admin` boleh mengakses semua resource ini.
+- `cashier` dan `member` mendapat response `403`.
+- Stock Movement: saat create, inventory otomatis diupdate via `StockMovementService`. Saat delete, efek inventory di-reverse.
+- Stock Movement update: hanya `title` dan `note` yang bisa diubah (field stok terkunci).
+- Inventory: tidak boleh duplikat pasangan `store_id` + `product_id`.
+
 ### Address CRUD
 
 - Hanya `member` yang bisa mengakses resource ini (`/api/member/addresses`).
@@ -293,6 +382,11 @@ Aturan tambahan saat create/update user oleh `main_admin`:
 - User Create: `full_name`, `password`, `password_confirmation`, `role`, `email` (opsional), `phone` (opsional), `store_id` (opsional, tergantung aturan role)
 - User Update: field user bersifat parsial (`full_name`, `email`, `phone`, `password`, `role`, `store_id`)
 - Address Create/Update: `name`, `address`, `receiver_name`, `receiver_phone`, `is_default` (boolean), `notes` (opsional)
+- Product Category Create: `name` (required, unique, max 32)
+- Brand Create: `name` (required, unique, max 64), `logo` (opsional, image file)
+- Product Create: `category_id`, `brand_id`, `name`, `sku` (unique), `unit`, `barcode` (opsional), `image` (opsional), `description` (opsional)
+- Inventory Create: `store_id`, `product_id`, `purchase_price`, `selling_price`, `stock` (opsional), `discount_percentage` (opsional), `min_stock` (opsional)
+- Stock Movement Create: `src_store_id`, `dest_store_id`, `product_id`, `quantity`, `type` (`in`/`out`), `title`, `note` (opsional)
 
 ## Data Model Ringkas
 
@@ -328,6 +422,56 @@ Kolom penting:
 - `receiver_phone`
 - `is_default` (boolean)
 
+### product_categories
+
+Kolom penting:
+
+- `name` (unique, max 32)
+
+### brands
+
+Kolom penting:
+
+- `name` (unique, max 64)
+- `logo_path` (nullable)
+
+### products
+
+Kolom penting:
+
+- `category_id` (FK ke `product_categories`)
+- `brand_id` (FK ke `brands`)
+- `name`
+- `barcode` (nullable, unique)
+- `sku` (unique)
+- `image_path` (nullable)
+- `unit`
+- `description` (nullable)
+
+### inventories
+
+Kolom penting:
+
+- `store_id` (FK ke `stores`)
+- `product_id` (FK ke `products`)
+- `stock` (decimal, default 0)
+- `purchase_price` (decimal)
+- `selling_price` (decimal)
+- `discount_percentage` (tinyint, default 0)
+- `min_stock` (decimal, default 0)
+
+### stock_movements
+
+Kolom penting:
+
+- `src_store_id` (FK ke `stores`)
+- `dest_store_id` (FK ke `stores`)
+- `product_id` (FK ke `products`)
+- `quantity` (decimal)
+- `type` (`in` / `out`)
+- `title`
+- `note` (nullable)
+
 ### phone_verification_tokens
 
 Kolom penting:
@@ -352,6 +496,10 @@ Kolom penting:
 
 - `StoreSeeder`
 - `UserSeeder`
+- `ProductCategorySeeder`
+- `BrandSeeder`
+- `ProductSeeder`
+- `InventorySeeder`
 
 `UserSeeder` membuat contoh role:
 
@@ -406,6 +554,11 @@ php artisan test --compact tests/Feature/AuthOtpTest.php
 php artisan test --compact tests/Feature/CreateAdminUserCommandTest.php
 php artisan test --compact tests/Feature/StoreResourceApiTest.php
 php artisan test --compact tests/Feature/UserResourceApiTest.php
+php artisan test --compact tests/Feature/ProductCategoryApiTest.php
+php artisan test --compact tests/Feature/BrandApiTest.php
+php artisan test --compact tests/Feature/ProductApiTest.php
+php artisan test --compact tests/Feature/InventoryApiTest.php
+php artisan test --compact tests/Feature/StockMovementApiTest.php
 ```
 
 ## Koleksi Bruno
@@ -420,14 +573,19 @@ Struktur collection:
 
 ```text
 bruno/paspos/
-  auth/          -> Register, Resend OTP, Verify OTP, Login, Forgot/Reset Password
-  profile/       -> Get Me, Update Profile, Update Avatar, Update Password
-  phone-update/  -> Request/Verify Phone Update OTP
-  email-update/  -> Request/Verify Email Update OTP
-  admin-stores/  -> List/Create/Get/Update/Delete Store
-  admin-users/   -> List/Create/Get/Update/Delete User
-  member-addresses/ -> List/Create/Get/Update/Delete Address
-  environments/  -> File environment Bruno
+  auth/                -> Register, Resend OTP, Verify OTP, Login, Forgot/Reset Password
+  profile/             -> Get Me, Update Profile, Update Avatar, Update Password
+  phone-update/        -> Request/Verify Phone Update OTP
+  email-update/        -> Request/Verify Email Update OTP
+  admin-stores/        -> List/Create/Get/Update/Delete Store
+  admin-users/         -> List/Create/Get/Update/Delete User
+  product-categories/  -> List/Create/Get/Update/Delete Product Category
+  brands/              -> List/Create/Get/Update/Delete Brand
+  products/            -> List/Create/Get/Update/Delete Product
+  inventories/         -> List/Create/Get/Update/Delete Inventory
+  stock-movements/     -> List/Create/Get/Update/Delete Stock Movement
+  member-addresses/    -> List/Create/Get/Update/Delete Address
+  environments/        -> File environment Bruno
 ```
 
 Sebelum dipakai, sesuaikan environment:

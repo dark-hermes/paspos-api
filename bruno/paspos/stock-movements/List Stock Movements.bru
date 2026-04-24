@@ -1,0 +1,39 @@
+meta {
+  name: List Stock Movements
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/stock-movements
+  body: none
+  auth: bearer
+}
+
+query {
+  ~src_store_id: 
+  ~dest_store_id: 
+  ~product_id: 
+  ~type: 
+  ~search: 
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("list stock movements returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}

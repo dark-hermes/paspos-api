@@ -1,0 +1,50 @@
+meta {
+  name: Create Product Category
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/product-categories
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "{{categoryName}}"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body && body.data && body.data.id) {
+    bru.setEnvVar("categoryId", String(body.data.id));
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("create category returns data id", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.be.a("number");
+  });
+}

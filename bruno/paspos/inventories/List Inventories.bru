@@ -1,0 +1,39 @@
+meta {
+  name: List Inventories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/inventories?store_id=3&product_id=6
+  body: none
+  auth: bearer
+}
+
+params:query {
+  store_id: 3
+  product_id: 6
+  ~search: 
+  ~low_stock: 
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("list inventories returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+}

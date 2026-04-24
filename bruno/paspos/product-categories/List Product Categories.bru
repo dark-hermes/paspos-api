@@ -1,0 +1,35 @@
+meta {
+  name: List Product Categories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/product-categories
+  body: none
+  auth: bearer
+}
+
+query {
+  ~search: 
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("list product categories returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}

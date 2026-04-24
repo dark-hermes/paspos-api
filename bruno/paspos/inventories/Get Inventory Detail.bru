@@ -1,0 +1,32 @@
+meta {
+  name: Get Inventory Detail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/inventories/{{inventoryId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("get inventory detail returns selected inventory", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.equal(Number(bru.getEnvVar("inventoryId")));
+  });
+}

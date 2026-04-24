@@ -1,0 +1,31 @@
+meta {
+  name: Delete Stock Movement
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/stock-movements/{{stockMovementId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("delete stock movement returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}

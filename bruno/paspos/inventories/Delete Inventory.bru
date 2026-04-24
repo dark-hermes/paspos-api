@@ -1,0 +1,31 @@
+meta {
+  name: Delete Inventory
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/inventories/{{inventoryId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("delete inventory returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}

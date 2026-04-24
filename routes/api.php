@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\ProductCategoryController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +31,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/user', [AuthController::class, 'me']);
     Route::apiResource('stores', StoreController::class);
     Route::apiResource('users', UserController::class);
+    Route::apiResource('product-categories', ProductCategoryController::class);
+    Route::apiResource('brands', BrandController::class);
+    Route::apiResource('products', ProductController::class);
+    Route::apiResource('inventories', InventoryController::class);
+    Route::apiResource('stock-movements', StockMovementController::class);
 });
 
 Route::prefix('member')->name('member.')->group(base_path('routes/member.php'));

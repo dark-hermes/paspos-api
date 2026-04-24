@@ -1,0 +1,42 @@
+meta {
+  name: Update Inventory
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/inventories/{{inventoryId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "selling_price": {{sellingPriceUpdated}},
+    "discount_percentage": {{discountPercentageUpdated}}
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("update inventory returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}

@@ -1,0 +1,51 @@
+meta {
+  name: Create Product
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/products
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:multipart-form {
+  category_id: {{categoryId}}
+  brand_id: {{brandId}}
+  name: {{productName}}
+  sku: {{productSku}}
+  unit: {{productUnit}}
+  ~barcode: 
+  ~description: 
+  ~image: 
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body && body.data && body.data.id) {
+    bru.setEnvVar("productId", String(body.data.id));
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("create product returns data id", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.be.a("number");
+  });
+}
