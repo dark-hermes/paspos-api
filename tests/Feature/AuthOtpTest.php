@@ -1,6 +1,8 @@
 <?php
 
+use App\Jobs\SendEmailOtpJob;
 use App\Jobs\SendWhatsappOtpJob;
+use App\Models\EmailVerificationToken;
 use App\Models\PhoneVerificationToken;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -374,4 +376,99 @@ it('rejects authenticated user password update with invalid current password', f
     $response->assertUnprocessable()
         ->assertJsonPath('status', 'error')
         ->assertJsonPath('message', 'Current password is invalid.');
+});
+
+it('sends otp for admin forgot password via email', function () {
+    Queue::fake();
+
+    $admin = User::factory()->create([
+        'email' => 'admin@example.com',
+        'role' => 'main_admin',
+        'password' => 'oldpassword123',
+    ]);
+
+    $response = $this->postJson('/api/admin/forgot-password', [
+        'email' => 'admin@example.com',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('status', 'success');
+
+    Queue::assertPushed(SendEmailOtpJob::class, function (SendEmailOtpJob $job): bool {
+        return $job->email === 'admin@example.com' && $job->purpose === 'password_reset';
+    });
+
+    expect(
+        EmailVerificationToken::query()
+            ->where('email', 'admin@example.com')
+            ->where('purpose', 'password_reset')
+            ->exists()
+    )->toBeTrue();
+});
+
+it('resets admin password with valid email otp', function () {
+    $admin = User::factory()->create([
+        'email' => 'admin@example.com',
+        'role' => 'main_admin',
+        'password' => 'oldpassword123',
+    ]);
+
+    EmailVerificationToken::query()->create([
+        'email' => $admin->email,
+        'purpose' => 'password_reset',
+        'token' => Hash::make('654321'),
+        'expires_at' => now()->addMinutes(5),
+    ]);
+
+    $response = $this->postJson('/api/admin/reset-password', [
+        'email' => 'admin@example.com',
+        'otp' => '654321',
+        'password' => 'newpassword123',
+        'password_confirmation' => 'newpassword123',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('status', 'success');
+
+    $admin->refresh();
+
+    expect(Hash::check('newpassword123', $admin->password))->toBeTrue();
+
+    expect(
+        EmailVerificationToken::query()
+            ->where('email', 'admin@example.com')
+            ->where('purpose', 'password_reset')
+            ->exists()
+    )->toBeFalse();
+});
+
+it('rejects admin forgot password for non-admin email', function () {
+    $member = User::factory()->create([
+        'email' => 'member@example.com',
+        'role' => 'member',
+    ]);
+
+    $response = $this->postJson('/api/admin/forgot-password', [
+        'email' => 'member@example.com',
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonStructure(['message', 'errors']);
+});
+
+it('rejects admin reset password for non-admin email', function () {
+    $member = User::factory()->create([
+        'email' => 'member@example.com',
+        'role' => 'member',
+    ]);
+
+    $response = $this->postJson('/api/admin/reset-password', [
+        'email' => 'member@example.com',
+        'otp' => '123456',
+        'password' => 'newpassword123',
+        'password_confirmation' => 'newpassword123',
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonStructure(['message', 'errors']);
 });

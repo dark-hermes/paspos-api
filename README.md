@@ -10,8 +10,9 @@ Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajem
 2. Verifikasi OTP untuk aktivasi akun.
 3. Login Admin wajib menggunakan email.
 4. Login Member bisa menggunakan nomor telepon atau email + password.
-5. Forgot password dan reset password via OTP.
-6. Endpoint profil user terautentikasi (`/api/me`).
+5. Forgot password dan reset password via OTP WhatsApp untuk member.
+6. Forgot password dan reset password via OTP Email untuk admin.
+7. Endpoint profil user terautentikasi (`/api/me`).
 7. Update profil (`full_name` dan avatar).
 8. Update password user.
 9. Update nomor telepon dengan flow OTP WhatsApp terpisah.
@@ -178,8 +179,9 @@ Pastikan queue worker berjalan agar OTP terkirim.
 3. `POST /api/login` menyesuaikan rule:
    - Admin (`main_admin`, `branch_admin`, `cashier`) wajib login menggunakan email.
    - Member boleh login dengan email (jika sudah verify) atau nomor telepon (jika sudah verify).
-4. `POST /api/forgot-password` dan `POST /api/reset-password` untuk reset password via OTP.
-5. `POST /api/me/phone/request-otp` dan `POST /api/me/phone/verify-otp` untuk update nomor telepon.
+4. `POST /api/forgot-password` dan `POST /api/reset-password` untuk reset password member via OTP WhatsApp.
+5. `POST /api/admin/forgot-password` dan `POST /api/admin/reset-password` untuk reset password admin via OTP Email.
+6. `POST /api/me/phone/request-otp` dan `POST /api/me/phone/verify-otp` untuk update nomor telepon.
 6. `POST /api/me/email/request-otp` dan `POST /api/me/email/verify-otp` untuk update email.
 
 Catatan normalisasi nomor:
@@ -198,8 +200,10 @@ Semua endpoint API menggunakan prefix `/api`.
 | POST | `/api/resend-otp` | Kirim ulang OTP registrasi |
 | POST | `/api/verify-otp` | Verifikasi OTP registrasi |
 | POST | `/api/login` | Login |
-| POST | `/api/forgot-password` | Kirim OTP reset password |
-| POST | `/api/reset-password` | Reset password dengan OTP |
+| POST | `/api/forgot-password` | Kirim OTP reset password (member via WhatsApp) |
+| POST | `/api/reset-password` | Reset password dengan OTP (member) |
+| POST | `/api/admin/forgot-password` | Kirim OTP reset password (admin via Email) |
+| POST | `/api/admin/reset-password` | Reset password dengan OTP (admin) |
 
 ### Protected (`auth:sanctum`)
 
@@ -279,6 +283,7 @@ Aturan tambahan saat create/update user oleh `main_admin`:
 - Login: `phone` ATAU `email`, dan `password`
 - Verify OTP: `phone`, `otp` (6 digit)
 - Reset Password: `phone`, `otp`, `password`, `password_confirmation`
+- Reset Password Admin: `email`, `otp`, `password`, `password_confirmation`
 - Update Profile: minimal salah satu dari `full_name` atau `avatar`
 - Update Password: `current_password`, `new_password`, `new_password_confirmation`
 - Update Phone: `new_phone`, dan `otp` pada step verifikasi
