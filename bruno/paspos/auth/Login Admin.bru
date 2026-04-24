@@ -1,0 +1,48 @@
+meta {
+  name: Login Admin
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "mainadmin@paspos.local",
+    "password": "password"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  
+  if (body && body.token) {
+    bru.setEnvVar("authToken", body.token);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("login returns token", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.token).to.be.a("string");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+}
