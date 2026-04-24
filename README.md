@@ -352,9 +352,20 @@ Semua endpoint API menggunakan prefix `/api`.
 
 - `main_admin` dan `branch_admin` boleh mengakses semua resource ini.
 - `cashier` dan `member` mendapat response `403`.
-- Stock Movement: saat create, inventory otomatis diupdate via `StockMovementService`. Saat delete, efek inventory di-reverse.
-- Stock Movement update: hanya `title` dan `note` yang bisa diubah (field stok terkunci).
 - Inventory: tidak boleh duplikat pasangan `store_id` + `product_id`.
+
+**Stock Movement Strict Constraints:**
+- Semua pergerakan harus berupa **integer > 0**.
+- Menggunakan Pessimistic Locking (`lockForUpdate`) untuk memastikan tidak ada race condition saat memutakhirkan kuantitas inventaris.
+- Semua pembaruan Inventory dilakukan di dalam `DB::transaction()`.
+- Kasus Bisnis:
+  - **INBOUND (`in`)**: `dest_store_id` wajib ada, `src_store_id` wajib NULL. Menambah stok di gudang tujuan.
+  - **OUTBOUND (`out`)**: `src_store_id` wajib ada, `dest_store_id` wajib NULL. Mengurangi stok dari gudang asal.
+  - **TRANSFER (`transfer`)**: `src_store_id` dan `dest_store_id` wajib ada dan tidak boleh sama. Mengurangi stok asal, menambah stok tujuan.
+  - **ADJUSTMENT**: Dilakukan dengan menggunakan tipe `in` (untuk koreksi positif) atau `out` (untuk koreksi negatif) beserta note.
+- Jika terdapat stok tidak cukup saat `out` atau `transfer`, sistem akan mengembalikan response HTTP 422 (Unprocessable Entity) lewat `InsufficientStockException`.
+- Update Stock Movement: hanya field `title` dan `note` yang bisa diubah (field stok terkunci, pergerakan append-only/immutable).
+- Delete Stock Movement: akan me-reverse efek yang diberikan pada Inventory dan menghapus record movement.
 
 ### Address CRUD
 
@@ -386,7 +397,7 @@ Aturan tambahan saat create/update user oleh `main_admin`:
 - Brand Create: `name` (required, unique, max 64), `logo` (opsional, image file)
 - Product Create: `category_id`, `brand_id`, `name`, `sku` (unique), `unit`, `barcode` (opsional), `image` (opsional), `description` (opsional)
 - Inventory Create: `store_id`, `product_id`, `purchase_price`, `selling_price`, `stock` (opsional), `discount_percentage` (opsional), `min_stock` (opsional)
-- Stock Movement Create: `src_store_id`, `dest_store_id`, `product_id`, `quantity`, `type` (`in`/`out`), `title`, `note` (opsional)
+- Stock Movement Create: `src_store_id` (opsional), `dest_store_id` (opsional), `product_id`, `quantity` (integer, gt:0), `type` (`in`/`out`/`transfer`), `title`, `note` (opsional)
 
 ## Data Model Ringkas
 

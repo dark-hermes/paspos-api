@@ -23,11 +23,11 @@ class StoreStockMovementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'src_store_id' => ['required', 'integer', Rule::exists('stores', 'id')],
-            'dest_store_id' => ['required', 'integer', Rule::exists('stores', 'id')],
+            'src_store_id' => ['nullable', 'integer', Rule::exists('stores', 'id')],
+            'dest_store_id' => ['nullable', 'integer', Rule::exists('stores', 'id')],
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
             'quantity' => ['required', 'numeric', 'gt:0'],
-            'type' => ['required', 'string', Rule::in(['in', 'out'])],
+            'type' => ['required', 'string', Rule::in(['in', 'out', 'transfer'])],
             'title' => ['required', 'string', 'max:32'],
             'note' => ['nullable', 'string', 'max:255'],
         ];
