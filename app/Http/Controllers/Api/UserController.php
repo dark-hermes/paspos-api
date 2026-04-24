@@ -16,16 +16,25 @@ class UserController extends Controller
     /**
      * @return array<int, string>
      */
-    private function branchManageableRoles(): array
+    private function manageableRoles(User $actor): array
     {
-        return ['cashier', 'member'];
+        if ($actor->role === 'main_admin') {
+            return ['main_admin', 'branch_admin', 'cashier', 'member'];
+        }
+        if ($actor->role === 'branch_admin') {
+            return ['branch_admin', 'cashier', 'member'];
+        }
+        if ($actor->role === 'cashier') {
+            return ['member'];
+        }
+        return [];
     }
 
     public function index(Request $request): JsonResponse
     {
         $actor = $request->user();
 
-        if (! $actor || ! in_array($actor->role, ['main_admin', 'branch_admin'], true)) {
+        if (! $actor || ! in_array($actor->role, ['main_admin', 'branch_admin', 'cashier'], true)) {
             return $this->forbiddenResponse();
         }
 
@@ -33,14 +42,31 @@ class UserController extends Controller
             ->with('store')
             ->latest('id');
 
-        if ($actor->role === 'branch_admin') {
+        if ($request->has('search')) {
+            $search = $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('role')) {
+            $query->where('role', $request->query('role'));
+        }
+
+        if ($request->has('store_id')) {
+            $query->where('store_id', $request->query('store_id'));
+        }
+
+        if (in_array($actor->role, ['branch_admin', 'cashier'], true)) {
             if ($actor->store_id === null) {
-                return $this->forbiddenResponse('Branch admin must be assigned to a store.');
+                return $this->forbiddenResponse('You must be assigned to a store.');
             }
 
             $query
                 ->where('store_id', $actor->store_id)
-                ->whereIn('role', $this->branchManageableRoles());
+                ->whereIn('role', $this->manageableRoles($actor));
         }
 
         return response()->json([
@@ -53,17 +79,17 @@ class UserController extends Controller
     {
         $actor = $request->user();
 
-        if (! $actor || ! in_array($actor->role, ['main_admin', 'branch_admin'], true)) {
+        if (! $actor || ! in_array($actor->role, ['main_admin', 'branch_admin', 'cashier'], true)) {
             return $this->forbiddenResponse();
         }
 
         $data = $request->validated();
 
-        if ($actor->role === 'branch_admin') {
-            $branchGuard = $this->guardBranchAdminPayload($actor, $data);
+        if (in_array($actor->role, ['branch_admin', 'cashier'], true)) {
+            $staffGuard = $this->guardStoreStaffPayload($actor, $data);
 
-            if ($branchGuard) {
-                return $branchGuard;
+            if ($staffGuard) {
+                return $staffGuard;
             }
         }
 
@@ -108,11 +134,11 @@ class UserController extends Controller
 
         $data = $request->validated();
 
-        if ($actor->role === 'branch_admin') {
-            $branchGuard = $this->guardBranchAdminPayload($actor, $data);
+        if (in_array($actor->role, ['branch_admin', 'cashier'], true)) {
+            $staffGuard = $this->guardStoreStaffPayload($actor, $data);
 
-            if ($branchGuard) {
-                return $branchGuard;
+            if ($staffGuard) {
+                return $staffGuard;
             }
         }
 
@@ -165,29 +191,29 @@ class UserController extends Controller
             return true;
         }
 
-        if ($actor->role !== 'branch_admin') {
+        if (! in_array($actor->role, ['branch_admin', 'cashier'], true)) {
             return false;
         }
 
-        if (! in_array($target->role, $this->branchManageableRoles(), true)) {
+        if (! in_array($target->role, $this->manageableRoles($actor), true)) {
             return false;
         }
 
         return $actor->store_id !== null && (int) $actor->store_id === (int) $target->store_id;
     }
 
-    private function guardBranchAdminPayload(User $actor, array &$payload): ?JsonResponse
+    private function guardStoreStaffPayload(User $actor, array &$payload): ?JsonResponse
     {
         if ($actor->store_id === null) {
-            return $this->forbiddenResponse('Branch admin must be assigned to a store.');
+            return $this->forbiddenResponse('You must be assigned to a store.');
         }
 
-        if (array_key_exists('role', $payload) && ! in_array((string) $payload['role'], $this->branchManageableRoles(), true)) {
-            return $this->forbiddenResponse('branch_admin can only manage cashier and member.');
+        if (array_key_exists('role', $payload) && ! in_array((string) $payload['role'], $this->manageableRoles($actor), true)) {
+            return $this->forbiddenResponse("{$actor->role} can only manage: " . implode(', ', $this->manageableRoles($actor)) . '.');
         }
 
         if (array_key_exists('store_id', $payload) && (int) $payload['store_id'] !== (int) $actor->store_id) {
-            return $this->forbiddenResponse('branch_admin can only manage users in their own store.');
+            return $this->forbiddenResponse("{$actor->role} can only manage users in their own store.");
         }
 
         $payload['store_id'] = $actor->store_id;

@@ -18,10 +18,23 @@ class StoreController extends Controller
             return $this->forbiddenResponse();
         }
 
-        $stores = Store::query()
+        $query = Store::query()
             ->withCount('users')
-            ->latest('id')
-            ->get();
+            ->latest('id');
+
+        if ($request->has('search')) {
+            $search = $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('type')) {
+            $query->where('type', $request->query('type'));
+        }
+
+        $stores = $query->get();
 
         return response()->json([
             'status' => 'success',

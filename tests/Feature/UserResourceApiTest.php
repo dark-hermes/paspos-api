@@ -131,7 +131,7 @@ it('allows branch admin to manage cashier and member in same store only', functi
     $roles = collect($indexResponse->json('data'))->pluck('role')->unique()->values()->all();
     $storeIds = collect($indexResponse->json('data'))->pluck('store_id')->unique()->values()->all();
 
-    expect($roles)->toEqualCanonicalizing(['cashier', 'member']);
+    expect($roles)->toEqualCanonicalizing(['branch_admin', 'cashier', 'member']);
     expect($storeIds)->toEqual([$branchStore->id]);
 
     $this
@@ -140,7 +140,7 @@ it('allows branch admin to manage cashier and member in same store only', functi
         ->assertOk();
 });
 
-it('forbids branch admin from managing admin roles', function () {
+it('forbids branch admin from managing main admin roles', function () {
     $mainStore = Store::factory()->create([
         'type' => 'main',
     ]);
@@ -174,9 +174,9 @@ it('forbids branch admin from managing admin roles', function () {
     $this
         ->withToken($token)
         ->patchJson('/api/users/' . $anotherBranchAdmin->id, [
-            'full_name' => 'Should Fail',
+            'full_name' => 'Branch Admin Updated',
         ])
-        ->assertForbidden();
+        ->assertOk();
 
     $this
         ->withToken($token)
@@ -188,18 +188,51 @@ it('forbids branch admin from managing admin roles', function () {
             'password_confirmation' => 'password123',
             'role' => 'branch_admin',
         ])
-        ->assertForbidden();
+        ->assertCreated();
 });
 
-it('forbids cashier from managing users', function () {
+it('allows cashier to manage member in same store only', function () {
+    $branchStore = Store::factory()->create([
+        'type' => 'branch',
+    ]);
+
     $cashier = User::factory()->create([
         'role' => 'cashier',
+        'store_id' => $branchStore->id,
     ]);
 
     $token = $cashier->createToken('auth-token')->plainTextToken;
 
     $this
         ->withToken($token)
-        ->getJson('/api/users')
+        ->postJson('/api/users', [
+            'full_name' => 'Member By Cashier',
+            'email' => 'member.by.cashier@example.com',
+            'phone' => '081211110004',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'member',
+        ])
+        ->assertCreated();
+
+    $this
+        ->withToken($token)
+        ->postJson('/api/users', [
+            'full_name' => 'Cashier By Cashier',
+            'email' => 'cashier.by.cashier@example.com',
+            'phone' => '081211110005',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'cashier',
+        ])
         ->assertForbidden();
+
+    $indexResponse = $this
+        ->withToken($token)
+        ->getJson('/api/users');
+        
+    $indexResponse->assertOk();
+
+    $roles = collect($indexResponse->json('data'))->pluck('role')->unique()->values()->all();
+    expect($roles)->toEqualCanonicalizing(['member']);
 });

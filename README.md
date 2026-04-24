@@ -6,14 +6,16 @@ Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajem
 
 ## Fitur Utama
 
-1. Registrasi user dengan OTP WhatsApp.
+1. Registrasi user dengan OTP WhatsApp (otomatis menjadi Member).
 2. Verifikasi OTP untuk aktivasi akun.
-3. Login menggunakan nomor telepon + password.
-4. Forgot password dan reset password via OTP.
-5. Endpoint profil user terautentikasi (`/api/me`).
-6. Update profil (`full_name` dan avatar).
-7. Update password user.
-8. Update nomor telepon dengan flow OTP terpisah.
+3. Login Admin wajib menggunakan email.
+4. Login Member bisa menggunakan nomor telepon atau email + password.
+5. Forgot password dan reset password via OTP.
+6. Endpoint profil user terautentikasi (`/api/me`).
+7. Update profil (`full_name` dan avatar).
+8. Update password user.
+9. Update nomor telepon dengan flow OTP WhatsApp terpisah.
+10. Update email dengan flow OTP Email terpisah.
 9. Role user (`main_admin`, `branch_admin`, `cashier`, `member`) dan relasi ke store.
 10. Command artisan untuk membuat user admin.
 11. CRUD Store berbasis role (khusus `main_admin`).
@@ -171,11 +173,14 @@ Pastikan queue worker berjalan agar OTP terkirim.
 
 ## Alur Auth OTP
 
-1. `POST /api/register` membuat user baru dan mengirim OTP registrasi.
+1. `POST /api/register` membuat user baru (role selalu `member`) dan mengirim OTP registrasi.
 2. `POST /api/verify-otp` memverifikasi OTP registrasi lalu memberikan token Sanctum.
-3. `POST /api/login` hanya untuk user dengan nomor terverifikasi.
+3. `POST /api/login` menyesuaikan rule:
+   - Admin (`main_admin`, `branch_admin`, `cashier`) wajib login menggunakan email.
+   - Member boleh login dengan email (jika sudah verify) atau nomor telepon (jika sudah verify).
 4. `POST /api/forgot-password` dan `POST /api/reset-password` untuk reset password via OTP.
 5. `POST /api/me/phone/request-otp` dan `POST /api/me/phone/verify-otp` untuk update nomor telepon.
+6. `POST /api/me/email/request-otp` dan `POST /api/me/email/verify-otp` untuk update email.
 
 Catatan normalisasi nomor:
 
@@ -207,6 +212,8 @@ Semua endpoint API menggunakan prefix `/api`.
 | PUT | `/api/me/password` | Update password |
 | POST | `/api/me/phone/request-otp` | Request OTP nomor baru |
 | POST | `/api/me/phone/verify-otp` | Verifikasi OTP nomor baru |
+| POST | `/api/me/email/request-otp` | Request OTP email baru |
+| POST | `/api/me/email/verify-otp` | Verifikasi OTP email baru |
 
 ### Protected Admin Resource (`auth:sanctum`)
 
@@ -269,12 +276,13 @@ Aturan tambahan saat create/update user oleh `main_admin`:
 ## Validasi Payload Ringkas
 
 - Register: `full_name`, `phone`, `password`, `password_confirmation`
-- Login: `phone`, `password`
+- Login: `phone` ATAU `email`, dan `password`
 - Verify OTP: `phone`, `otp` (6 digit)
 - Reset Password: `phone`, `otp`, `password`, `password_confirmation`
 - Update Profile: minimal salah satu dari `full_name` atau `avatar`
 - Update Password: `current_password`, `new_password`, `new_password_confirmation`
 - Update Phone: `new_phone`, dan `otp` pada step verifikasi
+- Update Email: `new_email`, dan `otp` pada step verifikasi
 - Store Create: `name`, `type` (`main` / `branch`), `address` (opsional)
 - Store Update: `name`/`type`/`address` (minimal salah satu)
 - User Create: `full_name`, `password`, `password_confirmation`, `role`, `email` (opsional), `phone` (opsional), `store_id` (opsional, tergantung aturan role)
@@ -321,6 +329,15 @@ Kolom penting:
 
 - `phone`
 - `purpose` (`registration`, `password_reset`, `phone_update`)
+- `token` (hashed)
+- `expires_at`
+
+### email_verification_tokens
+
+Kolom penting:
+
+- `email`
+- `purpose` (`email_update`)
 - `token` (hashed)
 - `expires_at`
 
@@ -401,6 +418,7 @@ bruno/paspos/
   auth/          -> Register, Resend OTP, Verify OTP, Login, Forgot/Reset Password
   profile/       -> Get Me, Update Profile, Update Avatar, Update Password
   phone-update/  -> Request/Verify Phone Update OTP
+  email-update/  -> Request/Verify Email Update OTP
   admin-stores/  -> List/Create/Get/Update/Delete Store
   admin-users/   -> List/Create/Get/Update/Delete User
   member-addresses/ -> List/Create/Get/Update/Delete Address

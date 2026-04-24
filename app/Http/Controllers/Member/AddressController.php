@@ -18,7 +18,23 @@ class AddressController extends Controller
             return $this->forbiddenResponse();
         }
 
-        $addresses = $request->user()->addresses()->latest('id')->get();
+        $query = $request->user()->addresses()->latest('id');
+
+        if ($request->has('search')) {
+            $search = $request->query('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%")
+                  ->orWhere('receiver_name', 'like', "%{$search}%")
+                  ->orWhere('receiver_phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('is_default')) {
+            $query->where('is_default', filter_var($request->query('is_default'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $addresses = $query->get();
 
         return response()->json([
             'status' => 'success',

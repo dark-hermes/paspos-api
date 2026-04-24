@@ -1,0 +1,22 @@
+meta {
+  name: Verify Email Update OTP
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/me/email/verify-otp
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "new_email": "{{newEmail}}",
+    "otp": "123456"
+  }
+}

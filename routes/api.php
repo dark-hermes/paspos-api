@@ -19,6 +19,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::put('/me/password', [AuthController::class, 'updatePassword']);
     Route::post('/me/phone/request-otp', [AuthController::class, 'requestPhoneUpdateOtp']);
     Route::post('/me/phone/verify-otp', [AuthController::class, 'verifyPhoneUpdateOtp']);
+    Route::post('/me/email/request-otp', [AuthController::class, 'requestEmailUpdateOtp']);
+    Route::post('/me/email/verify-otp', [AuthController::class, 'verifyEmailUpdateOtp']);
     Route::get('/user', [AuthController::class, 'me']);
     Route::apiResource('stores', StoreController::class);
     Route::apiResource('users', UserController::class);
