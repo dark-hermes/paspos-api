@@ -52,6 +52,8 @@ class User extends Authenticatable
         'phone_verified_at',
         'avatar_path',
         'password',
+        'role',
+        'store_id',
     ];
 
     /**
@@ -76,5 +78,15 @@ class User extends Authenticatable
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the store that the user belongs to.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 }

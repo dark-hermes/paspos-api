@@ -38,7 +38,6 @@ class AuthController extends Controller
         $user = User::query()->create([
             'name' => $data['full_name'],
             'phone' => $data['phone'],
-            'email' => $data['phone'] . '@paspos.local',
             'password' => $data['password'],
             'phone_verified_at' => null,
         ]);
@@ -337,7 +336,6 @@ class AuthController extends Controller
 
         $user->forceFill([
             'phone' => $data['new_phone'],
-            'email' => $data['new_phone'] . '@paspos.local',
             'phone_verified_at' => now(),
         ])->save();
 
@@ -392,7 +390,7 @@ class AuthController extends Controller
     {
         $maxAttempts = (int) config('services.whatsapp.otp_rate_limit_max_attempts', 1);
         $decaySeconds = (int) config('services.whatsapp.otp_rate_limit_decay_seconds', 60);
-        $rateLimitKey = 'otp:' . $purpose . ':' . $phone;
+        $rateLimitKey = 'otp:'.$purpose.':'.$phone;
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, $maxAttempts)) {
             $retryAfter = RateLimiter::availableIn($rateLimitKey);

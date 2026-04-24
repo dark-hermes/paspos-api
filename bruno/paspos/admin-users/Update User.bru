@@ -1,0 +1,44 @@
+meta {
+  name: Update User
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{baseUrl}}/api/users/{{targetUserId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "full_name": "{{targetUserNameUpdated}}",
+    "role": "{{userRoleUpdated}}"
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("update user returns updated values", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.full_name).to.equal(bru.getEnvVar("targetUserNameUpdated"));
+    expect(body.data.role).to.equal(bru.getEnvVar("userRoleUpdated"));
+  });
+}

@@ -1,11 +1,11 @@
 meta {
-  name: Get Me
+  name: Get User Detail
   type: http
-  seq: 6
+  seq: 19
 }
 
 get {
-  url: {{baseUrl}}/api/me
+  url: {{baseUrl}}/api/users/{{targetUserId}}
   body: none
   auth: bearer
 }
@@ -24,9 +24,9 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 
-  test("get me returns user id", function() {
+  test("get user detail returns selected user", function() {
     const body = res.getBody();
     expect(body.status).to.equal("success");
-    expect(body.data.id).to.be.a("number");
+    expect(body.data.id).to.equal(Number(bru.getEnvVar("targetUserId")));
   });
 }

@@ -43,7 +43,6 @@ it('verifies registration otp and returns token', function () {
     $user = User::factory()->create([
         'phone' => '628111111111',
         'phone_verified_at' => null,
-        'email' => '628111111111@paspos.local',
     ]);
 
     PhoneVerificationToken::query()->create([
@@ -77,7 +76,6 @@ it('prevents login for unverified phone', function () {
         'phone' => '628222222222',
         'phone_verified_at' => null,
         'password' => 'password123',
-        'email' => '628222222222@paspos.local',
     ]);
 
     $response = $this->postJson('/api/login', [
@@ -95,7 +93,6 @@ it('sends reset otp and resets password using otp', function () {
         'phone' => '628333333333',
         'phone_verified_at' => now(),
         'password' => 'oldpassword123',
-        'email' => '628333333333@paspos.local',
     ]);
 
     $forgotResponse = $this->postJson('/api/forgot-password', [
@@ -142,7 +139,6 @@ it('rate limits otp requests per phone number', function () {
     User::factory()->create([
         'phone' => '628444444444',
         'phone_verified_at' => now(),
-        'email' => '628444444444@paspos.local',
     ]);
 
     $firstResponse = $this->postJson('/api/forgot-password', [
@@ -164,7 +160,6 @@ it('logs out and revokes current sanctum token', function () {
     $user = User::factory()->create([
         'phone' => '628555555555',
         'phone_verified_at' => now(),
-        'email' => '628555555555@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;
@@ -184,7 +179,6 @@ it('returns authenticated user profile from get me endpoint', function () {
         'name' => 'Hermas Test',
         'phone' => '628666666666',
         'phone_verified_at' => now(),
-        'email' => '628666666666@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;
@@ -206,7 +200,6 @@ it('updates authenticated user profile', function () {
         'name' => 'Old Name',
         'phone' => '628777777777',
         'phone_verified_at' => now(),
-        'email' => '628777777777@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;
@@ -229,7 +222,6 @@ it('validates update profile payload', function () {
     $user = User::factory()->create([
         'phone' => '628888888888',
         'phone_verified_at' => now(),
-        'email' => '628888888888@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;
@@ -249,7 +241,6 @@ it('updates authenticated user avatar', function () {
         'name' => 'Avatar User',
         'phone' => '628999000111',
         'phone_verified_at' => now(),
-        'email' => '628999000111@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;
@@ -278,7 +269,6 @@ it('requests otp for authenticated phone update', function () {
     $user = User::factory()->create([
         'phone' => '628999000200',
         'phone_verified_at' => now(),
-        'email' => '628999000200@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;
@@ -308,7 +298,6 @@ it('verifies otp and updates authenticated user phone number', function () {
     $user = User::factory()->create([
         'phone' => '628999000300',
         'phone_verified_at' => now(),
-        'email' => '628999000300@paspos.local',
     ]);
 
     PhoneVerificationToken::query()->create([
@@ -334,7 +323,6 @@ it('verifies otp and updates authenticated user phone number', function () {
     $updatedUser = $user->fresh();
 
     expect($updatedUser->phone)->toBe('628999000301');
-    expect($updatedUser->email)->toBe('628999000301@paspos.local');
     expect(
         PhoneVerificationToken::query()
             ->where('phone', '628999000301')
@@ -348,7 +336,6 @@ it('updates authenticated user password', function () {
         'phone' => '628999000400',
         'phone_verified_at' => now(),
         'password' => 'oldpassword123',
-        'email' => '628999000400@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;
@@ -372,7 +359,6 @@ it('rejects authenticated user password update with invalid current password', f
         'phone' => '628999000500',
         'phone_verified_at' => now(),
         'password' => 'oldpassword123',
-        'email' => '628999000500@paspos.local',
     ]);
 
     $plainTextToken = $user->createToken('auth-token')->plainTextToken;

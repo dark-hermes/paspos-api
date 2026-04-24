@@ -1,0 +1,32 @@
+meta {
+  name: Get Store Detail
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/stores/{{storeId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("get store detail returns selected store", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.equal(Number(bru.getEnvVar("storeId")));
+  });
+}

@@ -1,0 +1,52 @@
+meta {
+  name: Create Store
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/stores
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "{{storeName}}",
+    "address": "{{storeAddress}}",
+    "type": "{{storeType}}"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+
+  if (body && body.data && body.data.id) {
+    bru.setEnvVar("storeId", String(body.data.id));
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("create store returns data id", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.be.a("number");
+  });
+}

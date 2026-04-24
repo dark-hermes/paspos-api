@@ -1,0 +1,31 @@
+meta {
+  name: Delete Store
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{baseUrl}}/api/stores/{{storeId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("delete store returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}

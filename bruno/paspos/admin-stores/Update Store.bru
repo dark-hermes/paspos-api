@@ -1,0 +1,43 @@
+meta {
+  name: Update Store
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{baseUrl}}/api/stores/{{storeId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "{{storeNameUpdated}}",
+    "address": "{{storeAddressUpdated}}"
+  }
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("update store returns updated name", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.name).to.equal(bru.getEnvVar("storeNameUpdated"));
+  });
+}

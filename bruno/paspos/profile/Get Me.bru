@@ -1,0 +1,33 @@
+meta {
+  name: Get Me
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("get me returns user id", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+    expect(body.data.id).to.be.a("number");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+}

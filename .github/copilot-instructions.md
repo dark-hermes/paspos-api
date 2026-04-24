@@ -396,3 +396,11 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
 </laravel-boost-guidelines>
+
+=== README rules ===
+## README
+- The README file is the main documentation file for the project and should be kept up to date with accurate information about the project, how to set it up, and how to contribute. You should only edit the README file when explicitly requested by the user. When editing the README, ensure that you maintain a clear and organized structure, use markdown formatting effectively, and provide accurate and helpful information for users and contributors. Always check for existing information in the README before making edits to avoid duplication and ensure consistency.
+
+=== Bruno rules ===
+## API Documentation
+- The `bruno` directory contains API documentation for the project. This documentation should be kept up to date with accurate information about the API endpoints, request and response formats, and any other relevant details. You should only edit the files in the `bruno` directory when explicitly requested by the user. When editing these files, ensure that you maintain a clear and organized structure, use markdown formatting effectively, and provide accurate and helpful information for users who will be consuming the API. Always check for existing information in the `bruno` directory before making edits to avoid duplication and ensure consistency.

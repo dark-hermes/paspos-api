@@ -1,59 +1,410 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PASPOS API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend API untuk aplikasi Paspos berbasis Laravel 12.
 
-## About Laravel
+Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajemen profil pengguna, serta otorisasi token API menggunakan Laravel Sanctum.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Fitur Utama
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. Registrasi user dengan OTP WhatsApp.
+2. Verifikasi OTP untuk aktivasi akun.
+3. Login menggunakan nomor telepon + password.
+4. Forgot password dan reset password via OTP.
+5. Endpoint profil user terautentikasi (`/api/me`).
+6. Update profil (`full_name` dan avatar).
+7. Update password user.
+8. Update nomor telepon dengan flow OTP terpisah.
+9. Role user (`main_admin`, `branch_admin`, `cashier`, `member`) dan relasi ke store.
+10. Command artisan untuk membuat user admin.
+11. CRUD Store berbasis role (khusus `main_admin`).
+12. CRUD User berbasis role (`main_admin` vs `branch_admin`).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Stack
 
-## Learning Laravel
+- PHP >= 8.2 (direkomendasikan 8.4)
+- Laravel 12
+- MySQL
+- Laravel Sanctum
+- Queue database driver
+- Pest untuk testing
+- Vite + Tailwind CSS 4 (aset frontend bawaan Laravel)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Struktur Proyek (Ringkas)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```text
+app/
+  Http/
+    Controllers/Api/AuthController.php
+    Requests/
+    Resources/AuthUserResource.php
+  Jobs/SendWhatsappOtpJob.php
+  Models/
+    User.php
+    Store.php
+    PhoneVerificationToken.php
+  Services/WhatsappBotClient.php
+  Support/PhoneNumberNormalizer.php
+database/
+  migrations/
+  factories/
+  seeders/
+routes/
+  api.php
+  web.php
+tests/
+  Feature/AuthOtpTest.php
+  Feature/CreateAdminUserCommandTest.php
+bruno/
+  paspos-auth-otp/
+```
 
-## Laravel Sponsors
+## Setup Lokal
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 1) Prasyarat
 
-### Premium Partners
+- PHP + Composer
+- MySQL
+- Node.js + npm
+- Service WhatsApp Bot (untuk pengiriman OTP nyata)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 2) Install dependency
 
-## Contributing
+```bash
+composer install
+npm install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3) Buat file environment
 
-## Code of Conduct
+PowerShell (Windows):
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```powershell
+Copy-Item .env.example .env
+```
 
-## Security Vulnerabilities
+Lalu generate app key:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan key:generate
+```
 
-## License
+### 4) Konfigurasi database di `.env`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=paspos_api
+DB_USERNAME=root
+DB_PASSWORD=
+
+QUEUE_CONNECTION=database
+```
+
+### 5) Migrasi dan seeding
+
+```bash
+php artisan migrate --seed
+```
+
+### 6) Link storage untuk avatar
+
+```bash
+php artisan storage:link
+```
+
+### 7) Jalankan aplikasi
+
+Cara cepat (server + queue listener + vite):
+
+```bash
+composer run dev
+```
+
+Atau manual di terminal terpisah:
+
+```bash
+php artisan serve
+php artisan queue:listen --tries=1
+npm run dev
+```
+
+Health check endpoint:
+
+```text
+GET /up
+```
+
+## Environment Penting
+
+Variabel `.env` yang paling penting:
+
+- `APP_URL`
+- `DB_*`
+- `QUEUE_CONNECTION`
+- `WHATSAPP_BOT_URL`
+- `BOT_API_KEY`
+- `WHATSAPP_BOT_TIMEOUT`
+- `OTP_EXPIRES_IN_MINUTES`
+- `OTP_RATE_LIMIT_MAX_ATTEMPTS`
+- `OTP_RATE_LIMIT_DECAY_SECONDS`
+
+## Integrasi WhatsApp Bot
+
+OTP dikirim oleh job `SendWhatsappOtpJob` yang memanggil service `WhatsappBotClient`.
+
+Request ke bot:
+
+- Method: `POST`
+- URL: `${WHATSAPP_BOT_URL}/send-message`
+- Header opsional: `x-api-key: ${BOT_API_KEY}`
+- Body JSON:
+
+```json
+{
+  "number": "628xxxx",
+  "message": "Kode OTP ..."
+}
+```
+
+Pastikan queue worker berjalan agar OTP terkirim.
+
+## Alur Auth OTP
+
+1. `POST /api/register` membuat user baru dan mengirim OTP registrasi.
+2. `POST /api/verify-otp` memverifikasi OTP registrasi lalu memberikan token Sanctum.
+3. `POST /api/login` hanya untuk user dengan nomor terverifikasi.
+4. `POST /api/forgot-password` dan `POST /api/reset-password` untuk reset password via OTP.
+5. `POST /api/me/phone/request-otp` dan `POST /api/me/phone/verify-otp` untuk update nomor telepon.
+
+Catatan normalisasi nomor:
+
+- Input seperti `0812-3456-7890` akan dinormalisasi menjadi `6281234567890`.
+
+## Endpoint API
+
+Semua endpoint API menggunakan prefix `/api`.
+
+### Public
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| POST | `/api/register` | Register user + kirim OTP |
+| POST | `/api/resend-otp` | Kirim ulang OTP registrasi |
+| POST | `/api/verify-otp` | Verifikasi OTP registrasi |
+| POST | `/api/login` | Login |
+| POST | `/api/forgot-password` | Kirim OTP reset password |
+| POST | `/api/reset-password` | Reset password dengan OTP |
+
+### Protected (`auth:sanctum`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| POST | `/api/logout` | Logout token saat ini |
+| GET | `/api/me` | Ambil profil user login |
+| GET | `/api/user` | Alias endpoint profil |
+| PATCH | `/api/me` | Update `full_name` dan/atau avatar |
+| PUT | `/api/me/password` | Update password |
+| POST | `/api/me/phone/request-otp` | Request OTP nomor baru |
+| POST | `/api/me/phone/verify-otp` | Verifikasi OTP nomor baru |
+
+### Protected Admin Resource (`auth:sanctum`)
+
+#### Store Resource
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/stores` | List store |
+| POST | `/api/stores` | Create store |
+| GET | `/api/stores/{store}` | Detail store |
+| PATCH | `/api/stores/{store}` | Update store |
+| DELETE | `/api/stores/{store}` | Hapus store |
+
+#### User Resource
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/users` | List user |
+| POST | `/api/users` | Create user |
+| GET | `/api/users/{user}` | Detail user |
+| PATCH | `/api/users/{user}` | Update user |
+| DELETE | `/api/users/{user}` | Hapus user |
+
+## Aturan Otorisasi Role
+
+### Store CRUD
+
+- Hanya `main_admin` yang boleh akses Store resource (`index`, `store`, `show`, `update`, `destroy`).
+- Role lain (`branch_admin`, `cashier`, `member`) akan mendapat response `403`.
+
+### User CRUD
+
+- `main_admin`: boleh mengelola semua user dan semua role.
+- `branch_admin`: hanya boleh mengelola user dengan role `cashier` dan `member`.
+- `branch_admin`: hanya boleh mengelola user pada store yang sama.
+- `cashier` dan `member`: tidak memiliki akses ke resource user.
+
+Aturan tambahan saat create/update user oleh `main_admin`:
+
+- Jika role `branch_admin`, `store_id` wajib diisi dan harus store bertipe `branch`.
+- Jika role `main_admin` dan `store_id` diisi, store harus bertipe `main`.
+
+## Validasi Payload Ringkas
+
+- Register: `full_name`, `phone`, `password`, `password_confirmation`
+- Login: `phone`, `password`
+- Verify OTP: `phone`, `otp` (6 digit)
+- Reset Password: `phone`, `otp`, `password`, `password_confirmation`
+- Update Profile: minimal salah satu dari `full_name` atau `avatar`
+- Update Password: `current_password`, `new_password`, `new_password_confirmation`
+- Update Phone: `new_phone`, dan `otp` pada step verifikasi
+- Store Create: `name`, `type` (`main` / `branch`), `address` (opsional)
+- Store Update: `name`/`type`/`address` (minimal salah satu)
+- User Create: `full_name`, `password`, `password_confirmation`, `role`, `email` (opsional), `phone` (opsional), `store_id` (opsional, tergantung aturan role)
+- User Update: field user bersifat parsial (`full_name`, `email`, `phone`, `password`, `role`, `store_id`)
+
+## Data Model Ringkas
+
+### users
+
+Kolom penting:
+
+- `name`
+- `email` (nullable, unique)
+- `phone` (nullable, unique)
+- `phone_verified_at`
+- `avatar_path`
+- `password`
+- `role` (`main_admin`, `branch_admin`, `cashier`, `member`)
+- `store_id` (nullable, relasi ke `stores`)
+
+### stores
+
+Kolom penting:
+
+- `name` (unique)
+- `address` (nullable)
+- `type` (`main` atau `branch`)
+
+### phone_verification_tokens
+
+Kolom penting:
+
+- `phone`
+- `purpose` (`registration`, `password_reset`, `phone_update`)
+- `token` (hashed)
+- `expires_at`
+
+## Seeder Data Awal
+
+`DatabaseSeeder` memanggil:
+
+- `StoreSeeder`
+- `UserSeeder`
+
+`UserSeeder` membuat contoh role:
+
+- main admin
+- branch admin
+- cashier
+- member
+
+Catatan:
+
+- Password default user hasil factory adalah `password`.
+- Nomor telepon pada seed user bisa berubah tiap seed (generated by factory).
+
+## Command Artisan Kustom
+
+### Membuat User Admin
+
+```bash
+php artisan user:create-admin {role} [--name=] [--email=] [--phone=] [--password=] [--store_id=]
+```
+
+`role` hanya boleh:
+
+- `main_admin`
+- `branch_admin`
+
+Aturan store:
+
+- `branch_admin` wajib menyertakan `--store_id`.
+- Jika `store_id` diisi pada `main_admin`, store harus bertipe `main`.
+- Jika `store_id` diisi pada `branch_admin`, store harus bertipe `branch`.
+
+Contoh:
+
+```bash
+php artisan user:create-admin main_admin --name="Main Admin" --email="main.admin@example.com" --phone="081234567890" --password="password123" --store_id=1
+php artisan user:create-admin branch_admin --name="Branch Admin" --email="branch.admin@example.com" --phone="081355566677" --password="password123" --store_id=2
+```
+
+## Testing
+
+Jalankan seluruh test:
+
+```bash
+php artisan test --compact
+```
+
+Jalankan test spesifik:
+
+```bash
+php artisan test --compact tests/Feature/AuthOtpTest.php
+php artisan test --compact tests/Feature/CreateAdminUserCommandTest.php
+php artisan test --compact tests/Feature/StoreResourceApiTest.php
+php artisan test --compact tests/Feature/UserResourceApiTest.php
+```
+
+## Koleksi Bruno
+
+Collection request API tersedia di:
+
+```text
+bruno/paspos-auth-otp
+```
+
+Struktur collection:
+
+```text
+bruno/paspos-auth-otp/
+  auth/          -> Register, Resend OTP, Verify OTP, Login, Forgot/Reset Password
+  profile/       -> Get Me, Update Profile, Update Avatar, Update Password
+  phone-update/  -> Request/Verify Phone Update OTP
+  admin-stores/  -> List/Create/Get/Update/Delete Store
+  admin-users/   -> List/Create/Get/Update/Delete User
+  environments/  -> File environment Bruno
+```
+
+Sebelum dipakai, sesuaikan environment:
+
+```text
+bruno/paspos-auth-otp/environments/local.bru
+```
+
+Variabel yang biasanya diubah:
+
+- `baseUrl`
+- `phone`
+- `newPhone`
+- `password`
+- `authToken`
+- `storeId`
+- `targetUserId`
+- `userRole`
+
+## Troubleshooting
+
+1. OTP tidak terkirim.
+Pastikan WhatsApp Bot aktif, konfigurasi URL benar, dan queue worker berjalan.
+
+2. Avatar URL tidak muncul.
+Pastikan sudah menjalankan `php artisan storage:link`.
+
+3. Kena rate limit OTP (`429`).
+Sesuaikan `OTP_RATE_LIMIT_MAX_ATTEMPTS` dan `OTP_RATE_LIMIT_DECAY_SECONDS`.
+
+## Lisensi
+
+Project ini menggunakan lisensi MIT.

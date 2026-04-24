@@ -1,0 +1,31 @@
+meta {
+  name: Delete User
+  type: http
+  seq: 21
+}
+
+delete {
+  url: {{baseUrl}}/api/users/{{targetUserId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("delete user returns success", function() {
+    const body = res.getBody();
+    expect(body.status).to.equal("success");
+  });
+}
