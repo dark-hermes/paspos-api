@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PosController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -29,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/me/email/request-otp', [AuthController::class, 'requestEmailUpdateOtp']);
     Route::post('/me/email/verify-otp', [AuthController::class, 'verifyEmailUpdateOtp']);
     Route::get('/user', [AuthController::class, 'me']);
+
     Route::apiResource('stores', StoreController::class);
     Route::apiResource('users', UserController::class);
     Route::apiResource('product-categories', ProductCategoryController::class);
@@ -36,6 +40,11 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
     Route::apiResource('inventories', InventoryController::class);
     Route::apiResource('stock-movements', StockMovementController::class);
+    
+    Route::apiResource('orders', OrderController::class);
+    Route::apiResource('payments', PaymentController::class)->only(['store', 'index']);
+    Route::get('pos/products', [PosController::class, 'searchProducts']);
+    Route::post('pos/orders', [PosController::class, 'placeOrder']);
 });
 
 Route::prefix('member')->name('member.')->group(base_path('routes/member.php'));

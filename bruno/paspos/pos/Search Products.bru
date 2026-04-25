@@ -1,0 +1,16 @@
+meta {
+  name: "Search Products"
+  type: "http"
+  seq: 1
+}
+
+get {
+  url: "{{baseUrl}}/pos/products?store_id={{storeId}}&search=Product Name"
+  body: none
+  auth: inherit
+}
+
+query {
+  store_id: "{{storeId}}"
+  search: "Product Name"
+}

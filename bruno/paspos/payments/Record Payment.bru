@@ -1,0 +1,20 @@
+meta {
+  name: "Record Payment"
+  type: "http"
+  seq: 1
+}
+
+post {
+  url: "{{baseUrl}}/payments"
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "order_id": 1,
+    "amount": 10000,
+    "payment_method": "cash",
+    "note": "Payment for debt"
+  }
+}

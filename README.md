@@ -26,6 +26,10 @@ Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajem
 18. CRUD Product berbasis role, dengan upload image, filter by category/brand.
 19. CRUD Inventory berbasis role, dengan filter store/product dan low stock alert.
 20. CRUD Stock Movement berbasis role, dengan auto-update inventory via `StockMovementService`.
+21. Manajemen Pemesanan (POS & Online) dengan tracking stok otomatis.
+22. Sistem Pembayaran & Piutang (Pay Later) untuk member.
+23. Tracking COGS (Harga Pokok Penjualan) historis pada setiap transaksi.
+24. Pembatalan otomatis pesanan online yang kadaluarsa (>24 jam).
 
 ## Stack
 
@@ -322,6 +326,22 @@ Semua endpoint API menggunakan prefix `/api`.
 | PATCH | `/api/stock-movements/{id}` | Update movement (hanya title/note) |
 | DELETE | `/api/stock-movements/{id}` | Hapus movement (reverse inventory) |
 
+#### Order & POS Resource (`main_admin`, `branch_admin`, `cashier`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/pos/products` | Cari produk untuk POS (barcode/name/brand) |
+| POST | `/api/pos/orders` | Buat pesanan POS (Cash/Pay Later) |
+| GET | `/api/orders` | List semua pesanan (filter store/payment_status) |
+| GET | `/api/orders/{id}` | Detail pesanan + items |
+
+#### Payment Resource (`main_admin`, `branch_admin`, `cashier`)
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/payments` | List history pembayaran (filter order_id) |
+| POST | `/api/payments` | Catat pembayaran baru (auto-update payment_status) |
+
 ### Protected Member Resource (`auth:sanctum`)
 
 #### Address Resource
@@ -398,6 +418,214 @@ Aturan tambahan saat create/update user oleh `main_admin`:
 - Product Create: `category_id`, `brand_id`, `name`, `sku` (unique), `unit`, `barcode` (opsional), `image` (opsional), `description` (opsional)
 - Inventory Create: `store_id`, `product_id`, `purchase_price`, `selling_price`, `stock` (opsional), `discount_percentage` (opsional), `min_stock` (opsional)
 - Stock Movement Create: `src_store_id` (opsional), `dest_store_id` (opsional), `product_id`, `quantity` (integer, gt:0), `type` (`in`/`out`/`transfer`), `title`, `note` (opsional)
+
+## Alur Pemesanan & Pembayaran
+
+### 1. POS (Point of Sale)
+POS dirancang untuk transaksi langsung di toko.
+- **Pencarian**: Mendukung scan barcode atau pencarian manual (nama/brand).
+- **Harga**: Backend menarik harga terbaru dari tabel `inventories` (mengabaikan input harga dari frontend).
+- **Metode**: `cash`, `transfer`, `qris`, atau `pay_later`.
+- **Pay Later**: Hanya diperbolehkan jika `customer_id` disertakan (wajib Member).
+
+### 2. Online Order
+- Stok langsung di-reserve saat order dibuat.
+- Jika tidak dibayar dalam 24 jam, sistem akan menjalankan job `orders:cancel-expired` untuk membatalkan order dan mengembalikan stok.
+
+### 3. Status Keuangan (Payment Status)
+Status pembayaran dikelola secara otomatis oleh `PaymentObserver`:
+- `unpaid`: Belum ada pembayaran.
+- `partial`: Total bayar < total tagihan.
+- `paid`: Total bayar >= total tagihan.
+
+### 4. Status Logistik & Transaksi (Order Status)
+Berikut adalah visualisasi transisi status pesanan dari awal hingga selesai:
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: Order Created (Online)
+    [*] --> completed: Order Created (POS & Paid)
+    [*] --> pending: Order Created (POS & Pay Later)
+    
+    pending --> processing: Admin Confirms
+    processing --> shipped: Courier Picked Up
+    shipped --> delivered: Arrived at Destination
+    delivered --> completed: Customer Confirms
+    
+    pending --> cancelled: Expired (>24h Unpaid)
+    processing --> cancelled: Out of Stock/Manual
+    shipped --> cancelled: Delivery Failed
+    cancelled --> [*]
+    completed --> [*]
+```
+
+### Diagram Alur Transaksi
+
+```mermaid
+sequenceDiagram
+    participant C as Customer/Cashier
+    participant A as API (OrderService)
+    participant D as Database (Inventories)
+    participant O as Observer (PaymentObserver)
+
+    C->>A: POST /api/pos/orders (items, payment_method)
+    Note over A: Double Validation & Business Rules Check
+    A->>D: lockForUpdate() & Pull selling_price + base_cost
+    A->>D: Deduct Stock (StockMovement 'out')
+    A->>D: Create Order & OrderItems
+    alt Method is Cash/QRIS/Transfer
+        A->>D: Create Initial Payment
+        D->>O: Trigger Created Event
+        O->>D: Update Order payment_status to 'paid'
+    else Method is Pay Later
+        A->>D: Create Order without Initial Payment
+        Note over A: Order payment_status stays 'unpaid'
+    end
+    A-->>C: Response 201 (OrderResource)
+```
+
+## Fitur Keamanan & Integritas
+
+- **Double Validation**: Validasi skema di FormRequest dan validasi aturan bisnis di Service.
+- **Anti-Fraud**: Backend selalu melakukan *price pull* dari database, bukan dari request body.
+- **COGS tracking**: Mencatat `base_cost` (harga beli) pada setiap transaksi agar laporan laba-rugi akurat meskipun harga modal di masa depan berubah.
+- **Concurrency**: Menggunakan Database Transactions dan Pessimistic Locking untuk mencegah *overselling*.
+
+## Entity Relationship Diagram (ERD)
+
+Berikut adalah struktur basis data lengkap untuk PASPOS API:
+
+```mermaid
+---
+config:
+  layout: elk
+  theme: neutral
+---
+erDiagram
+    STORES {
+        bigint id PK
+        string name UK
+        string address "Nullable"
+        enum type "main, branch"
+    }
+
+    USERS {
+        bigint id PK
+        bigint store_id FK "Nullable"
+        string name
+        string email UK "Nullable"
+        string phone UK "Nullable"
+        string password
+        enum role "main_admin, branch_admin, cashier, member"
+        string avatar_path "Nullable"
+    }
+
+    ADDRESSES {
+        bigint id PK
+        bigint user_id FK
+        string name
+        text address
+        string receiver_name
+        string receiver_phone
+        boolean is_default
+    }
+
+    PRODUCT_CATEGORIES {
+        bigint id PK
+        string name UK
+    }
+
+    BRANDS {
+        bigint id PK
+        string name UK
+        string logo_path "Nullable"
+    }
+
+    PRODUCTS {
+        bigint id PK
+        bigint category_id FK
+        bigint brand_id FK
+        string name
+        string barcode UK "Nullable"
+        string sku UK
+        string image_path "Nullable"
+        string unit
+        text description "Nullable"
+    }
+
+    INVENTORIES {
+        bigint id PK
+        bigint store_id FK
+        bigint product_id FK
+        decimal stock
+        decimal purchase_price
+        decimal selling_price
+        unsigned_tinyint discount_percentage
+        decimal min_stock
+    }
+
+    STOCK_MOVEMENTS {
+        bigint id PK
+        bigint src_store_id FK "Nullable"
+        bigint dest_store_id FK "Nullable"
+        bigint product_id FK
+        decimal quantity
+        enum type "in, out, transfer"
+        string title
+        string note "Nullable"
+    }
+
+    ORDERS {
+        bigint id PK
+        string order_number UK
+        enum type "pos, online"
+        bigint store_id FK
+        bigint customer_id FK "Nullable"
+        bigint cashier_id FK "Nullable"
+        decimal total_amount
+        enum payment_method "cash, transfer, qris, cod, pay_later"
+        enum payment_status "paid, unpaid, partial"
+        enum status "completed, pending, processing, shipped, delivered, cancelled"
+        text shipping_address "Nullable"
+    }
+
+    ORDER_ITEMS {
+        bigint id PK
+        bigint order_id FK
+        bigint product_id FK
+        integer quantity
+        decimal base_cost
+        decimal unit_price
+        decimal subtotal
+    }
+
+    PAYMENTS {
+        bigint id PK
+        bigint order_id FK
+        bigint cashier_id FK
+        decimal amount
+        enum payment_method "cash, transfer, qris"
+        string note "Nullable"
+    }
+
+    %% Relationships
+    STORES ||--o{ USERS : "employs"
+    USERS ||--o{ ADDRESSES : "owns"
+    PRODUCT_CATEGORIES ||--o{ PRODUCTS : "categorizes"
+    BRANDS ||--o{ PRODUCTS : "brands"
+    STORES ||--o{ INVENTORIES : "holds"
+    PRODUCTS ||--o{ INVENTORIES : "stocked_as"
+    STORES ||--o{ STOCK_MOVEMENTS : "dispatches (src)"
+    STORES ||--o{ STOCK_MOVEMENTS : "receives (dest)"
+    PRODUCTS ||--o{ STOCK_MOVEMENTS : "tracks"
+    STORES ||--o{ ORDERS : "fulfills"
+    USERS ||--o{ ORDERS : "makes (customer)"
+    USERS ||--o{ ORDERS : "processes (cashier)"
+    ORDERS ||--o{ ORDER_ITEMS : "includes"
+    PRODUCTS ||--o{ ORDER_ITEMS : "sold_in"
+    ORDERS ||--o{ PAYMENTS : "paid_via"
+    USERS ||--o{ PAYMENTS : "received_by"
+```
 
 ## Data Model Ringkas
 

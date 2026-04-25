@@ -1,0 +1,16 @@
+meta {
+  name: "List Orders"
+  type: "http"
+  seq: 1
+}
+
+get {
+  url: "{{baseUrl}}/orders?store_id={{storeId}}&payment_status=paid"
+  body: none
+  auth: inherit
+}
+
+query {
+  store_id: "{{storeId}}"
+  payment_status: "paid"
+}

@@ -1,0 +1,15 @@
+meta {
+  name: "List Payments"
+  type: "http"
+  seq: 2
+}
+
+get {
+  url: "{{baseUrl}}/payments?order_id=1"
+  body: none
+  auth: inherit
+}
+
+query {
+  order_id: "1"
+}
