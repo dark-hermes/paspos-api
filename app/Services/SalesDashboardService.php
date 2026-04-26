@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class SalesDashboardService
 {
@@ -38,6 +40,7 @@ class SalesDashboardService
                 'monthly' => $this->buildTimeSeries($storeId, 6, 'month'),
             ],
             'recent_transactions' => $this->buildRecentTransactions($storeId),
+            'top_debtors' => $this->buildTopDebtors($storeId),
         ];
     }
 
@@ -124,6 +127,42 @@ class SalesDashboardService
                 'payment_status' => $order->payment_status,
                 'status' => $order->status,
                 'created_at' => $order->created_at->toDateTimeString(),
+            ])
+            ->toArray();
+    }
+
+    private function buildTopDebtors(?int $storeId): array
+    {
+        $paymentTotals = Payment::query()
+            ->select('order_id', DB::raw('SUM(amount) as paid_amount'))
+            ->groupBy('order_id');
+
+        return Order::query()
+            ->select([
+                'customers.id as customer_id',
+                'customers.name as customer_name',
+                'customers.email as customer_email',
+                'customers.phone as customer_phone',
+                DB::raw('SUM(orders.total_amount - COALESCE(payment_totals.paid_amount, 0)) as total_due'),
+                DB::raw('COUNT(orders.id) as order_count'),
+            ])
+            ->when($storeId, fn ($query) => $query->where('orders.store_id', $storeId))
+            ->whereNotNull('orders.customer_id')
+            ->whereIn('orders.payment_status', ['unpaid', 'partial'])
+            ->leftJoinSub($paymentTotals, 'payment_totals', 'orders.id', '=', 'payment_totals.order_id')
+            ->join('users as customers', 'customers.id', '=', 'orders.customer_id')
+            ->groupBy('customers.id', 'customers.name', 'customers.email', 'customers.phone')
+            ->havingRaw('SUM(orders.total_amount - COALESCE(payment_totals.paid_amount, 0)) > 0')
+            ->orderByDesc('total_due')
+            ->limit(5)
+            ->get()
+            ->map(fn ($row) => [
+                'customer_id' => $row->customer_id,
+                'customer_name' => $row->customer_name,
+                'customer_email' => $row->customer_email,
+                'customer_phone' => $row->customer_phone,
+                'total_due' => (float) $row->total_due,
+                'order_count' => (int) $row->order_count,
             ])
             ->toArray();
     }

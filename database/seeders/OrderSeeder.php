@@ -20,18 +20,27 @@ class OrderSeeder extends Seeder
     {
         $store = Store::query()->where('type', 'branch')->first();
         $cashier = $store ? User::query()->where('role', 'cashier')->where('store_id', $store->id)->first() : null;
-        $customer = $store ? User::query()->where('role', 'member')->where('store_id', $store->id)->first() : null;
+        $members = $store ? User::query()->where('role', 'member')->where('store_id', $store->id)->get() : collect();
         $inventories = $store ? Inventory::query()->where('store_id', $store->id)->get() : collect();
 
-        if (! $store || ! $cashier || ! $customer || $inventories->count() < 2) {
+        if (! $store || ! $cashier || $inventories->count() < 3) {
             return;
         }
 
-        $items = $inventories->shuffle()->take(2)->values();
+        if ($members->count() < 3) {
+            User::factory()->count(3 - $members->count())->assignStore($store->id)->withAddress()->create([
+                'role' => 'member',
+            ]);
+
+            $members = User::query()->where('role', 'member')->where('store_id', $store->id)->get();
+        }
+
+        $members = $members->shuffle()->values();
+        $items = $inventories->shuffle()->take(3)->values();
 
         $this->createOrder(
             $store->id,
-            $customer->id,
+            $members[0]->id,
             $cashier->id,
             'pos',
             'cash',
@@ -39,45 +48,83 @@ class OrderSeeder extends Seeder
             'completed',
             Carbon::today()->setTime(9, 0),
             [
-                ['inventory' => $items[0], 'quantity' => 3],
+                ['inventory' => $items[0], 'quantity' => 2],
                 ['inventory' => $items[1], 'quantity' => 1],
             ],
+            [],
+            null,
         );
 
         $this->createOrder(
             $store->id,
-            $customer->id,
+            $members[1]->id,
             $cashier->id,
             'pos',
             'transfer',
-            'paid',
-            'completed',
+            'partial',
+            'processing',
             Carbon::today()->subDays(2)->setTime(14, 30),
             [
-                ['inventory' => $items[1], 'quantity' => 2],
+                ['inventory' => $items[1], 'quantity' => 4],
+                ['inventory' => $items[2], 'quantity' => 2],
             ],
+            [],
+            20000,
         );
 
         $this->createOrder(
             $store->id,
-            $customer->id,
+            $members[2]->id,
+            $cashier->id,
+            'pos',
+            'cash',
+            'unpaid',
+            'pending',
+            Carbon::today()->subDays(3)->setTime(16, 15),
+            [
+                ['inventory' => $items[0], 'quantity' => 5],
+            ],
+            [],
+            null,
+        );
+
+        $this->createOrder(
+            $store->id,
+            $members[1]->id,
             $cashier->id,
             'online',
-            'qris',
-            'paid',
-            'processing',
-            Carbon::today()->startOfMonth()->addDays(2)->setTime(11, 15),
+            'pay_later',
+            'unpaid',
+            'pending',
+            Carbon::today()->subDays(7)->setTime(11, 15),
             [
-                ['inventory' => $items[0], 'quantity' => 2],
-                ['inventory' => $items[1], 'quantity' => 2],
+                ['inventory' => $items[2], 'quantity' => 3],
             ],
             [
                 'shipping_name' => 'Amazing Store',
-                'shipping_receiver_name' => $customer->name,
-                'shipping_receiver_phone' => $customer->phone,
-                'shipping_address' => 'Jl. Example No. 123, Jakarta',
-                'shipping_notes' => 'Leave package at the cashier desk.',
+                'shipping_receiver_name' => $members[1]->name,
+                'shipping_receiver_phone' => $members[1]->phone,
+                'shipping_address' => 'Jl. Pelanggan No. 45, Jakarta',
+                'shipping_notes' => 'Tinggal di meja kasir.',
             ],
+            null,
+        );
+
+        $this->createOrder(
+            $store->id,
+            $members[0]->id,
+            $cashier->id,
+            'pos',
+            'qris',
+            'partial',
+            'completed',
+            Carbon::today()->subDays(1)->setTime(10, 0),
+            [
+                ['inventory' => $items[0], 'quantity' => 1],
+                ['inventory' => $items[2], 'quantity' => 2],
+            ],
+            [],
+            15000,
         );
     }
 
@@ -91,7 +138,8 @@ class OrderSeeder extends Seeder
         string $status,
         Carbon $date,
         array $items,
-        array $shipping = []
+        array $shipping = [],
+        ?float $paymentAmount = null
     ): void {
         $orderItems = [];
         $totalAmount = 0;
@@ -128,12 +176,14 @@ class OrderSeeder extends Seeder
 
         $order->items()->createMany($orderItems);
 
-        Payment::create([
-            'order_id' => $order->id,
-            'cashier_id' => $cashierId,
-            'amount' => $totalAmount,
-            'payment_method' => $paymentMethod,
-            'note' => 'Seeded payment for order ' . $order->order_number,
-        ]);
+        if ($paymentAmount !== null) {
+            Payment::create([
+                'order_id' => $order->id,
+                'cashier_id' => $cashierId,
+                'amount' => min($paymentAmount, $totalAmount),
+                'payment_method' => $paymentMethod,
+                'note' => 'Seeded payment for order ' . $order->order_number,
+            ]);
+        }
     }
 }

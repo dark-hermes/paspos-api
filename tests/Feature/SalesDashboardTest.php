@@ -117,6 +117,16 @@ class SalesDashboardTest extends TestCase
                                  'created_at',
                              ],
                          ],
+                         'top_debtors' => [
+                             '*' => [
+                                 'customer_id',
+                                 'customer_name',
+                                 'customer_email',
+                                 'customer_phone',
+                                 'total_due',
+                                 'order_count',
+                             ],
+                         ],
                      ],
                  ])
                  ->assertJsonCount(1, 'data.chart.daily.datasets')
