@@ -5,9 +5,13 @@ meta {
 }
 
 post {
-  url: "{{baseUrl}}/payments"
+  url: {{baseUrl}}/api/payments
   body: json
-  auth: inherit
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
 }
 
 body:json {

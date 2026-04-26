@@ -5,9 +5,13 @@ meta {
 }
 
 get {
-  url: "{{baseUrl}}/payments?order_id=1"
+  url: {{baseUrl}}/api/payments?order_id=1
   body: none
-  auth: inherit
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
 }
 
 query {

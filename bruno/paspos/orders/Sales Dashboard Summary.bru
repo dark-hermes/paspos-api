@@ -1,11 +1,11 @@
 meta {
-  name: "List Orders"
+  name: "Sales Dashboard Summary"
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
-  url: {{baseUrl}}/api/orders?store_id={{storeId}}&payment_status=paid
+  url: {{baseUrl}}/api/orders/dashboard?store_id={{storeId}}
   body: none
   auth: bearer
 }
@@ -16,5 +16,4 @@ auth:bearer {
 
 params:query {
   store_id: {{storeId}}
-  payment_status: paid
 }

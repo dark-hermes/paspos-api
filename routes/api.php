@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PosController;
+use App\Http\Controllers\Api\SalesDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -41,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('inventories', InventoryController::class);
     Route::apiResource('stock-movements', StockMovementController::class);
     
+    Route::get('orders/dashboard', [SalesDashboardController::class, 'index']);
     Route::apiResource('orders', OrderController::class);
     Route::apiResource('payments', PaymentController::class)->only(['store', 'index']);
     Route::get('pos/products', [PosController::class, 'searchProducts']);
