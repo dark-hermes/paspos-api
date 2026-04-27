@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    use HasFactory;
+
     protected $guarded = ['id'];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'shipping_fee' => 'decimal:2',
     ];
 
     public function store(): \Illuminate\Database\Eloquent\Relations\BelongsTo

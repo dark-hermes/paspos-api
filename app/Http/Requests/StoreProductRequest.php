@@ -30,6 +30,7 @@ class StoreProductRequest extends FormRequest
             'sku' => ['required', 'string', 'max:255', Rule::unique('products', 'sku')],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'unit' => ['required', 'string', 'max:8'],
+            'weight' => ['nullable', 'numeric', 'min:0'],
             'description' => ['nullable', 'string', 'max:5000'],
         ];
     }

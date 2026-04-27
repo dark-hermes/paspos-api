@@ -33,6 +33,7 @@ class UpdateProductRequest extends FormRequest
             'sku' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($productId)],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'unit' => ['sometimes', 'required', 'string', 'max:8'],
+            'weight' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
         ];
     }

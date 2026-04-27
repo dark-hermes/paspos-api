@@ -22,6 +22,7 @@ class Inventory extends Model
         'selling_price',
         'discount_percentage',
         'min_stock',
+        'is_active',
     ];
 
     /**
@@ -37,6 +38,7 @@ class Inventory extends Model
             'selling_price' => 'decimal:2',
             'discount_percentage' => 'integer',
             'min_stock' => 'decimal:2',
+            'is_active' => 'boolean',
         ];
     }
 

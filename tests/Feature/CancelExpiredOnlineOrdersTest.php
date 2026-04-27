@@ -2,25 +2,23 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Store;
-use App\Models\Product;
-use App\Models\ProductCategory;
 use App\Models\Brand;
 use App\Models\Inventory;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\StockMovement;
-use App\Services\OrderService;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\Store;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CancelExpiredOnlineOrdersTest extends TestCase
 {
     use RefreshDatabase;
 
     private Store $store;
+
     private Product $product;
 
     protected function setUp(): void
@@ -46,7 +44,7 @@ class CancelExpiredOnlineOrdersTest extends TestCase
         ]);
     }
 
-    public function test_cancels_unpaid_online_orders_older_than_24_hours()
+    public function test_cancels_unpaid_online_orders_older_than_default_threshold()
     {
         $customer = User::factory()->create(['role' => 'member']);
 
@@ -60,8 +58,8 @@ class CancelExpiredOnlineOrdersTest extends TestCase
             'payment_method' => 'transfer',
             'payment_status' => 'unpaid',
             'status' => 'pending',
-            'created_at' => Carbon::now()->subHours(25),
-            'updated_at' => Carbon::now()->subHours(25),
+            'created_at' => Carbon::now()->subDays(4),
+            'updated_at' => Carbon::now()->subDays(4),
         ]);
 
         // Create order item
@@ -87,7 +85,7 @@ class CancelExpiredOnlineOrdersTest extends TestCase
 
         // Run the command
         $this->artisan('orders:cancel-expired')
-             ->assertSuccessful();
+            ->assertSuccessful();
 
         // Order should now be cancelled
         $this->assertEquals('cancelled', $order->fresh()->status);
@@ -124,7 +122,7 @@ class CancelExpiredOnlineOrdersTest extends TestCase
         ]);
 
         $this->artisan('orders:cancel-expired')
-             ->assertSuccessful();
+            ->assertSuccessful();
 
         // Order should still be pending
         $this->assertEquals('pending', $order->fresh()->status);
@@ -143,13 +141,52 @@ class CancelExpiredOnlineOrdersTest extends TestCase
             'payment_method' => 'transfer',
             'payment_status' => 'paid',
             'status' => 'pending',
-            'created_at' => Carbon::now()->subHours(48),
+            'created_at' => Carbon::now()->subDays(5),
         ]);
 
         $this->artisan('orders:cancel-expired')
-             ->assertSuccessful();
+            ->assertSuccessful();
 
         // Order should still be pending (not cancelled) because it's paid
         $this->assertEquals('pending', $order->fresh()->status);
+    }
+
+    public function test_cancels_processing_online_orders_older_than_threshold(): void
+    {
+        $customer = User::factory()->create(['role' => 'member']);
+
+        $order = Order::create([
+            'order_number' => 'ORD-PROCESSING-EXPIRED',
+            'type' => 'online',
+            'store_id' => $this->store->id,
+            'customer_id' => $customer->id,
+            'total_amount' => 20000,
+            'payment_method' => 'cod',
+            'payment_status' => 'unpaid',
+            'status' => 'processing',
+            'created_at' => Carbon::now()->subDays(4),
+            'updated_at' => Carbon::now()->subDays(4),
+        ]);
+
+        $order->items()->create([
+            'product_id' => $this->product->id,
+            'quantity' => 2,
+            'base_cost' => 5000,
+            'unit_price' => 10000,
+            'subtotal' => 20000,
+        ]);
+
+        Inventory::where('store_id', $this->store->id)
+            ->where('product_id', $this->product->id)
+            ->decrement('stock', 2);
+
+        $this->artisan('orders:cancel-expired')->assertSuccessful();
+
+        $this->assertEquals('cancelled', $order->fresh()->status);
+        $this->assertDatabaseHas('inventories', [
+            'store_id' => $this->store->id,
+            'product_id' => $this->product->id,
+            'stock' => 100.00,
+        ]);
     }
 }

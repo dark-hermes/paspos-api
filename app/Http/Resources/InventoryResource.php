@@ -24,6 +24,7 @@ class InventoryResource extends JsonResource
             'selling_price' => (float) $this->selling_price,
             'discount_percentage' => (int) $this->discount_percentage,
             'min_stock' => (float) $this->min_stock,
+            'is_active' => (bool) $this->is_active,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'store' => $this->whenLoaded('store', function (): ?array {

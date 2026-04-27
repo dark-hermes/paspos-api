@@ -1,0 +1,23 @@
+meta {
+  name: "Checkout"
+  type: "http"
+  seq: 4
+}
+
+post {
+  url: "{{baseUrl}}/member/cart/checkout"
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "store_id": 1,
+    "payment_method": "cod",
+    "shipping_name": "JNE Regular",
+    "shipping_receiver_name": "John Doe",
+    "shipping_receiver_phone": "08123456789",
+    "shipping_address": "Jl. Mawar No. 123, Bandung",
+    "notes": "Tolong cepat dikirim"
+  }
+}

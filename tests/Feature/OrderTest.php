@@ -99,4 +99,32 @@ class OrderTest extends TestCase
                      ]
                  ]);
     }
+
+    public function test_branch_admin_only_sees_their_store_orders()
+    {
+        $storeA = Store::factory()->create();
+        $storeB = Store::factory()->create();
+        
+        $adminA = User::factory()->create(['role' => 'branch_admin', 'store_id' => $storeA->id]);
+        
+        Order::factory()->count(3)->create(['store_id' => $storeA->id]);
+        Order::factory()->count(2)->create(['store_id' => $storeB->id]);
+        
+        $response = $this->actingAs($adminA)->getJson('/api/orders');
+        
+        $response->assertStatus(200)
+                 ->assertJsonCount(3, 'data');
+    }
+
+    public function test_branch_admin_cannot_show_other_store_order()
+    {
+        $storeA = Store::factory()->create();
+        $storeB = Store::factory()->create();
+        
+        $adminA = User::factory()->create(['role' => 'branch_admin', 'store_id' => $storeA->id]);
+        $orderB = Order::factory()->create(['store_id' => $storeB->id]);
+        
+        $this->actingAs($adminA)->getJson('/api/orders/' . $orderB->id)
+             ->assertForbidden();
+    }
 }

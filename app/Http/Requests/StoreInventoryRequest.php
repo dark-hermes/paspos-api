@@ -30,6 +30,7 @@ class StoreInventoryRequest extends FormRequest
             'selling_price' => ['required', 'numeric', 'min:0'],
             'discount_percentage' => ['sometimes', 'integer', 'min:0', 'max:100'],
             'min_stock' => ['sometimes', 'numeric', 'min:0'],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

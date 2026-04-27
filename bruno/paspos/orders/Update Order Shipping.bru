@@ -1,0 +1,18 @@
+meta {
+  name: "Update Order Shipping"
+  type: "http"
+  seq: 3
+}
+
+patch {
+  url: "{{baseUrl}}/orders/1/shipping"
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "shipping_fee": 15000,
+    "courier_name": "JNE OKE"
+  }
+}

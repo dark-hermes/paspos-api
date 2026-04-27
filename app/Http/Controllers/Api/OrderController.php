@@ -12,11 +12,18 @@ class OrderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
+        
         $query = Order::query()
             ->with(['store', 'customer', 'cashier'])
             ->latest();
 
-        if ($request->has('store_id')) {
+        // Granular Authorization: Branch Admin & Cashier can only see their store's orders
+        if (in_array($user->role, ['branch_admin', 'cashier'], true)) {
+            $query->where('store_id', $user->store_id);
+        }
+
+        if ($request->has('store_id') && $user->role === 'main_admin') {
             $query->where('store_id', $request->query('store_id'));
         }
 
@@ -36,6 +43,8 @@ class OrderController extends Controller
 
     public function show(Order $order): JsonResponse
     {
+        $this->authorize('view', $order);
+
         return response()->json([
             'status' => 'success',
             'data' => new OrderResource($order->load(['store', 'customer', 'cashier', 'items.product', 'payments.cashier'])),

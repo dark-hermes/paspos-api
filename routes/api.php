@@ -1,16 +1,17 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\OrderManagementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\SalesDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,9 +42,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('products', ProductController::class);
     Route::apiResource('inventories', InventoryController::class);
     Route::apiResource('stock-movements', StockMovementController::class);
-    
+
     Route::get('orders/dashboard', [SalesDashboardController::class, 'index']);
     Route::apiResource('orders', OrderController::class);
+    Route::patch('orders/{order}/shipping', [OrderManagementController::class, 'updateShipping']);
+    Route::patch('orders/{order}/status', [OrderManagementController::class, 'updateStatus']);
+    Route::post('orders/{order}/complete-cod', [OrderManagementController::class, 'completeCod']);
     Route::apiResource('payments', PaymentController::class)->only(['store', 'index']);
     Route::get('pos/products', [PosController::class, 'searchProducts']);
     Route::post('pos/orders', [PosController::class, 'placeOrder']);

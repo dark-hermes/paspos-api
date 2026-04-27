@@ -25,6 +25,7 @@ class ProductFactory extends Factory
             'barcode' => fake()->unique()->ean13(),
             'sku' => fake()->unique()->bothify('SKU-####-??'),
             'unit' => fake()->randomElement(['pcs', 'kg', 'ltr', 'box', 'pack']),
+            'weight' => fake()->optional()->randomFloat(2, 1, 50000),
             'description' => fake()->sentence(),
         ];
     }

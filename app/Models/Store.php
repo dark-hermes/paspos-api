@@ -39,4 +39,14 @@ class Store extends Model
     {
         return $this->hasMany(Inventory::class);
     }
+
+    /**
+     * Get the cart items for the store.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<CartItem, Store>
+     */
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
+    }
 }

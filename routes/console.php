@@ -7,4 +7,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-\Illuminate\Support\Facades\Schedule::command('orders:cancel-expired')->everyFifteenMinutes();
+\Illuminate\Support\Facades\Schedule::command('orders:cancel-expired')->daily();
+\Illuminate\Support\Facades\Schedule::command('carts:clear-abandoned')->daily();

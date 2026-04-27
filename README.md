@@ -30,6 +30,11 @@ Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajem
 22. Sistem Pembayaran & Piutang (Pay Later) untuk member.
 23. Tracking COGS (Harga Pokok Penjualan) historis pada setiap transaksi.
 24. Pembatalan otomatis pesanan online yang kadaluarsa (>24 jam).
+25. Manajemen Keranjang Belanja (Cart) untuk Member.
+26. Checkout Online terintegrasi dengan reservasi stok otomatis.
+27. Manajemen Pengiriman & Status Pesanan Online untuk Admin (Shipping & Order Status).
+28. Penyelesaian COD (Complete COD) dengan validasi idempotensi.
+29. Pembersihan otomatis keranjang belanja yang ditinggalkan (Abandoned Cart Cleaner).
 
 ## Stack
 
@@ -334,6 +339,9 @@ Semua endpoint API menggunakan prefix `/api`.
 | POST | `/api/pos/orders` | Buat pesanan POS (Cash/Pay Later) |
 | GET | `/api/orders` | List semua pesanan (filter store/payment_status) |
 | GET | `/api/orders/{id}` | Detail pesanan + items |
+| PATCH | `/api/orders/{order}/shipping` | Update biaya ongkir & kurir (Online Order) |
+| PATCH | `/api/orders/{order}/status` | Update status pesanan (Online Order) |
+| POST | `/api/orders/{order}/complete-cod` | Selesaikan pembayaran COD |
 
 #### Payment Resource (`main_admin`, `branch_admin`, `cashier`)
 
@@ -353,6 +361,14 @@ Semua endpoint API menggunakan prefix `/api`.
 | GET | `/api/member/addresses/{address}` | Detail address |
 | PATCH/PUT | `/api/member/addresses/{address}` | Update address |
 | DELETE | `/api/member/addresses/{address}` | Hapus address |
+
+#### Cart Resource
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/member/cart` | Lihat isi keranjang belanja |
+| POST | `/api/member/cart` | Tambah/update item ke keranjang |
+| DELETE | `/api/member/cart/{cartItem}` | Hapus item dari keranjang |
+| POST | `/api/member/cart/checkout` | Proses checkout menjadi pesanan |
 
 ## Aturan Otorisasi Role
 
@@ -387,10 +403,20 @@ Semua endpoint API menggunakan prefix `/api`.
 - Update Stock Movement: hanya field `title` dan `note` yang bisa diubah (field stok terkunci, pergerakan append-only/immutable).
 - Delete Stock Movement: akan me-reverse efek yang diberikan pada Inventory dan menghapus record movement.
 
-### Address CRUD
+### Address & Cart CRUD
 
-- Hanya `member` yang bisa mengakses resource ini (`/api/member/addresses`).
-- Setiap member hanya dapat melihat, mengubah, dan menghapus alamat pengiriman miliknya sendiri.
+- Hanya `member` yang bisa mengakses resource ini (`/api/member/addresses` dan `/api/member/cart`).
+- Setiap member hanya dapat mengelola data miliknya sendiri.
+
+### Order & Payment Authorization (Granular)
+
+- **Listing & Detail**:
+  - `main_admin`: Boleh melihat semua pesanan dari semua toko.
+  - `branch_admin` & `cashier`: Hanya boleh melihat pesanan yang berasal dari toko tempat mereka ditugaskan (`store_id` sama).
+- **Order Management (Shipping, Status, Complete COD)**:
+  - `main_admin`: Boleh mengelola semua pesanan.
+  - `branch_admin`: Hanya boleh mengelola pesanan dari toko mereka sendiri.
+  - `cashier`: Tidak memiliki akses untuk mengubah biaya kirim, status pesanan, atau menyelesaikan COD manual.
 
 Aturan tambahan saat create/update user oleh `main_admin`:
 

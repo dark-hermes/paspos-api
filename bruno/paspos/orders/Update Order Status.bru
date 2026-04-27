@@ -1,0 +1,17 @@
+meta {
+  name: "Update Order Status"
+  type: "http"
+  seq: 4
+}
+
+patch {
+  url: "{{baseUrl}}/orders/1/status"
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "status": "shipped"
+  }
+}

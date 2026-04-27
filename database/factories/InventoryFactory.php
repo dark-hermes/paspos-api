@@ -26,6 +26,7 @@ class InventoryFactory extends Factory
             'selling_price' => fake()->randomFloat(2, 2000, 100000),
             'discount_percentage' => fake()->numberBetween(0, 50),
             'min_stock' => fake()->randomFloat(2, 1, 10),
+            'is_active' => true,
         ];
     }
 }

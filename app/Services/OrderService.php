@@ -6,28 +6,31 @@ use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\StockMovement;
-use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
     /**
-     * @param array $data Validated data containing: type, store_id, customer_id, cashier_id, payment_method, items, shipping_* fields.
+     * @param  array  $data  Validated data containing: type, store_id, customer_id, cashier_id, payment_method, items, shipping_* fields.
      */
     public function createOrder(array $data): Order
     {
         return DB::transaction(function () use ($data) {
+            $orderType = $data['type'] ?? 'pos';
+
             // Double validation for pay_later
             if ($data['payment_method'] === 'pay_later') {
-                if (($data['type'] ?? 'pos') !== 'pos' || empty($data['customer_id'])) {
+                if ($orderType !== 'pos' || empty($data['customer_id'])) {
                     throw new Exception('Pay later is only allowed for POS transactions with a registered member.');
                 }
             }
 
             $storeId = $data['store_id'];
             $itemsData = $data['items']; // array of ['product_id' => x, 'quantity' => y]
+            $shippingFee = (float) ($data['shipping_fee'] ?? 0);
 
-            $totalAmount = 0;
+            $itemsSubtotal = 0;
             $orderItemsToCreate = [];
             $inventoryUpdates = [];
 
@@ -39,22 +42,24 @@ class OrderService
                     ->lockForUpdate()
                     ->first();
 
-                if (!$inventory || $inventory->stock < $item['quantity']) {
+                if (! $inventory) {
+                    throw new Exception("Product ID {$item['product_id']} is not available in the selected store inventory.");
+                }
+
+                if (! $inventory->is_active) {
+                    throw new Exception("Product ID {$item['product_id']} is inactive in the selected store inventory.");
+                }
+
+                if ($inventory->stock < $item['quantity']) {
                     throw new Exception("Insufficient stock for product ID {$item['product_id']}.");
                 }
 
                 $quantity = $item['quantity'];
                 $baseCost = $inventory->purchase_price;
-                $unitPrice = $inventory->selling_price;
-                
-                // If there's a discount_percentage in inventory, apply it
-                if ($inventory->discount_percentage > 0) {
-                    $discount = $unitPrice * ($inventory->discount_percentage / 100);
-                    $unitPrice = $unitPrice - $discount;
-                }
+                $unitPrice = $this->calculateUnitPrice($inventory);
 
                 $subtotal = $unitPrice * $quantity;
-                $totalAmount += $subtotal;
+                $itemsSubtotal += $subtotal;
 
                 $orderItemsToCreate[] = [
                     'product_id' => $item['product_id'],
@@ -66,22 +71,26 @@ class OrderService
 
                 $inventoryUpdates[] = [
                     'inventory' => $inventory,
-                    'quantity' => $quantity
+                    'quantity' => $quantity,
                 ];
             }
+
+            $totalAmount = $itemsSubtotal + $shippingFee;
 
             // Create Order
             $order = Order::create([
                 'order_number' => $this->generateOrderNumber(),
-                'type' => $data['type'] ?? 'pos',
+                'type' => $orderType,
                 'store_id' => $storeId,
                 'customer_id' => $data['customer_id'] ?? null,
                 'cashier_id' => $data['cashier_id'] ?? null,
                 'total_amount' => $totalAmount,
+                'shipping_fee' => $shippingFee,
                 'payment_method' => $data['payment_method'],
                 'payment_status' => 'unpaid',
-                'status' => ($data['type'] ?? 'pos') === 'pos' ? 'completed' : 'pending',
+                'status' => $orderType === 'pos' ? 'completed' : 'pending',
                 'shipping_name' => $data['shipping_name'] ?? null,
+                'courier_name' => $data['courier_name'] ?? null,
                 'shipping_receiver_name' => $data['shipping_receiver_name'] ?? null,
                 'shipping_receiver_phone' => $data['shipping_receiver_phone'] ?? null,
                 'shipping_address' => $data['shipping_address'] ?? null,
@@ -127,5 +136,17 @@ class OrderService
     private function generateOrderNumber(): string
     {
         return 'ORD-' . strtoupper(uniqid());
+    }
+
+    private function calculateUnitPrice(Inventory $inventory): float
+    {
+        $unitPrice = (float) $inventory->selling_price;
+
+        if ($inventory->discount_percentage > 0) {
+            $discount = $unitPrice * ((float) $inventory->discount_percentage / 100);
+            $unitPrice -= $discount;
+        }
+
+        return round($unitPrice, 2);
     }
 }

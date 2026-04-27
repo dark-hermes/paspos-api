@@ -22,8 +22,21 @@ class Product extends Model
         'sku',
         'image_path',
         'unit',
+        'weight',
         'description',
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'weight' => 'decimal:2',
+        ];
+    }
 
     /**
      * Get the category that owns the product.
@@ -63,5 +76,15 @@ class Product extends Model
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * Get the cart items for the product.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<CartItem, Product>
+     */
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
     }
 }

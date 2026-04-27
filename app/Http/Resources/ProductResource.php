@@ -24,6 +24,7 @@ class ProductResource extends JsonResource
             'sku' => $this->sku,
             'image_url' => $this->image_path ? Storage::disk('public')->url($this->image_path) : null,
             'unit' => $this->unit,
+            'weight' => $this->weight !== null ? (float) $this->weight : null,
             'description' => $this->description,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
