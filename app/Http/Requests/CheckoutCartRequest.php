@@ -22,7 +22,6 @@ class CheckoutCartRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'store_id' => ['required', 'exists:stores,id'],
             'payment_method' => ['nullable', 'in:cod'],
             'shipping_name' => ['required', 'string', 'max:255'],
             'shipping_receiver_name' => ['required', 'string', 'max:255'],

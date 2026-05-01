@@ -21,8 +21,7 @@ it('validates selected product and store inventory when adding to cart', functio
         'brand_id' => $brand->id,
     ]);
 
-    $response = $this->actingAs($member)->postJson('/api/member/cart', [
-        'store_id' => $store->id,
+    $response = $this->actingAs($member)->postJson('/api/member/' . $store->id . '/cart', [
         'product_id' => $product->id,
         'quantity' => 2,
     ]);
@@ -53,14 +52,12 @@ it('keeps one cart row per user-store-product combination', function () {
         'is_active' => true,
     ]);
 
-    $this->actingAs($member)->postJson('/api/member/cart', [
-        'store_id' => $store->id,
+    $this->actingAs($member)->postJson('/api/member/' . $store->id . '/cart', [
         'product_id' => $product->id,
         'quantity' => 2,
     ])->assertCreated();
 
-    $this->actingAs($member)->postJson('/api/member/cart', [
-        'store_id' => $store->id,
+    $this->actingAs($member)->postJson('/api/member/' . $store->id . '/cart', [
         'product_id' => $product->id,
         'quantity' => 3,
     ])->assertOk();
@@ -102,7 +99,7 @@ it('returns realtime stock and price from inventory on cart listing', function (
         'quantity' => 2,
     ]);
 
-    $response = $this->actingAs($member)->getJson('/api/member/cart');
+    $response = $this->actingAs($member)->getJson('/api/member/' . $store->id . '/cart');
 
     $response->assertOk()
         ->assertJsonPath('data.0.current_stock', 20)

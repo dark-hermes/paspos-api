@@ -1,0 +1,15 @@
+meta {
+  name: "List Products"
+  type: http
+  seq: 1
+}
+
+get {
+  url: "{{baseUrl}}/api/member/{{branchId}}/catalog/products"
+  body: none
+  auth: none
+}
+
+query {
+  ~search: 
+}

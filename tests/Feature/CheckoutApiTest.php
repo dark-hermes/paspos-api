@@ -41,8 +41,7 @@ it('revalidates inventory activity during checkout', function () {
 
     $inventory->update(['is_active' => false]);
 
-    $response = $this->actingAs($member)->postJson('/api/member/cart/checkout', [
-        'store_id' => $store->id,
+    $response = $this->actingAs($member)->postJson('/api/member/' . $store->id . '/cart/checkout', [
         'payment_method' => 'cod',
         'shipping_name' => 'PasPOS Delivery',
         'shipping_receiver_name' => 'John Doe',
@@ -90,8 +89,7 @@ it('creates online order from cart and stores base cost plus unit price snapshot
         'quantity' => 3,
     ]);
 
-    $response = $this->actingAs($member)->postJson('/api/member/cart/checkout', [
-        'store_id' => $store->id,
+    $response = $this->actingAs($member)->postJson('/api/member/' . $store->id . '/cart/checkout', [
         'payment_method' => 'cod',
         'shipping_name' => 'PasPOS Delivery',
         'shipping_receiver_name' => 'Jane Doe',

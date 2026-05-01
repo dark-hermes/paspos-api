@@ -30,11 +30,12 @@ Project ini berfokus pada autentikasi nomor telepon dengan OTP WhatsApp, manajem
 22. Sistem Pembayaran & Piutang (Pay Later) untuk member.
 23. Tracking COGS (Harga Pokok Penjualan) historis pada setiap transaksi.
 24. Pembatalan otomatis pesanan online yang kadaluarsa (>24 jam).
-25. Manajemen Keranjang Belanja (Cart) untuk Member.
-26. Checkout Online terintegrasi dengan reservasi stok otomatis.
-27. Manajemen Pengiriman & Status Pesanan Online untuk Admin (Shipping & Order Status).
-28. Penyelesaian COD (Complete COD) dengan validasi idempotensi.
-29. Pembersihan otomatis keranjang belanja yang ditinggalkan (Abandoned Cart Cleaner).
+25. Public catalog browsing per cabang untuk guest/member.
+26. Manajemen Keranjang Belanja (Cart) untuk Member.
+27. Checkout Online terintegrasi dengan reservasi stok otomatis.
+28. Manajemen Pengiriman & Status Pesanan Online untuk Admin (Shipping & Order Status).
+29. Penyelesaian COD (Complete COD) dengan validasi idempotensi.
+30. Pembersihan otomatis keranjang belanja yang ditinggalkan (Abandoned Cart Cleaner).
 
 ## Stack
 
@@ -99,6 +100,8 @@ tests/
     StockMovementApiTest.php
 bruno/
   paspos/
+    member-catalog/
+    member-cart/
 ```
 
 ## Setup Lokal
@@ -350,6 +353,15 @@ Semua endpoint API menggunakan prefix `/api`.
 | GET | `/api/payments` | List history pembayaran (filter order_id) |
 | POST | `/api/payments` | Catat pembayaran baru (auto-update payment_status) |
 
+### Public Member Catalog
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/member/{branch}/catalog/products` | List produk publik per cabang |
+| GET | `/api/member/{branch}/catalog/products/{product}` | Detail produk publik |
+| GET | `/api/member/{branch}/catalog/categories` | List kategori publik per cabang |
+| GET | `/api/member/{branch}/catalog/brands` | List brand publik per cabang |
+
 ### Protected Member Resource (`auth:sanctum`)
 
 #### Address Resource
@@ -365,10 +377,10 @@ Semua endpoint API menggunakan prefix `/api`.
 #### Cart Resource
 | Method | Endpoint | Keterangan |
 | --- | --- | --- |
-| GET | `/api/member/cart` | Lihat isi keranjang belanja |
-| POST | `/api/member/cart` | Tambah/update item ke keranjang |
-| DELETE | `/api/member/cart/{cartItem}` | Hapus item dari keranjang |
-| POST | `/api/member/cart/checkout` | Proses checkout menjadi pesanan |
+| GET | `/api/member/{branch}/cart` | Lihat isi keranjang belanja |
+| POST | `/api/member/{branch}/cart` | Tambah/update item ke keranjang |
+| DELETE | `/api/member/{branch}/cart/{cartItem}` | Hapus item dari keranjang |
+| POST | `/api/member/{branch}/cart/checkout` | Proses checkout menjadi pesanan |
 
 ## Aturan Otorisasi Role
 
@@ -405,7 +417,8 @@ Semua endpoint API menggunakan prefix `/api`.
 
 ### Address & Cart CRUD
 
-- Hanya `member` yang bisa mengakses resource ini (`/api/member/addresses` dan `/api/member/cart`).
+- Katalog publik bisa diakses tanpa autentikasi melalui `/api/member/{branch}/catalog/*`.
+- Hanya `member` yang bisa mengakses resource private ini (`/api/member/addresses` dan `/api/member/{branch}/cart`).
 - Setiap member hanya dapat mengelola data miliknya sendiri.
 
 ### Order & Payment Authorization (Granular)
@@ -849,6 +862,8 @@ bruno/paspos/
   products/            -> List/Create/Get/Update/Delete Product
   inventories/         -> List/Create/Get/Update/Delete Inventory
   stock-movements/     -> List/Create/Get/Update/Delete Stock Movement
+  member-catalog/      -> List Products/Detail Categories/Brands per cabang (public)
+  member-cart/         -> Get/Add/Remove/Checkout Cart per cabang (private)
   member-addresses/    -> List/Create/Get/Update/Delete Address
   environments/        -> File environment Bruno
 ```
@@ -867,6 +882,7 @@ Variabel yang biasanya diubah:
 - `password`
 - `authToken`
 - `storeId`
+- `branchId`
 - `targetUserId`
 - `userRole`
 

@@ -16,14 +16,17 @@ use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, int $branch): JsonResponse
     {
         if (! $this->isMember($request)) {
             return $this->forbiddenResponse();
         }
 
+        $this->validateBranch($branch);
+
         $cartItems = CartItem::query()
             ->where('user_id', $request->user()->id)
+            ->where('store_id', $branch)
             ->with(['store', 'product.brand', 'product.category'])
             ->latest('id')
             ->get();
@@ -38,16 +41,18 @@ class CartController extends Controller
         ]);
     }
 
-    public function store(StoreCartItemRequest $request): JsonResponse
+    public function store(StoreCartItemRequest $request, int $branch): JsonResponse
     {
         if (! $this->isMember($request)) {
             return $this->forbiddenResponse();
         }
 
+        $this->validateBranch($branch);
+
         $data = $request->validated();
 
         $inventory = Inventory::query()
-            ->where('store_id', $data['store_id'])
+            ->where('store_id', $branch)
             ->where('product_id', $data['product_id'])
             ->first();
 
@@ -60,7 +65,7 @@ class CartController extends Controller
 
         $cartItem = CartItem::query()->firstOrNew([
             'user_id' => $request->user()->id,
-            'store_id' => $data['store_id'],
+            'store_id' => $branch,
             'product_id' => $data['product_id'],
         ]);
 
@@ -80,13 +85,15 @@ class CartController extends Controller
         ], $isNew ? 201 : 200);
     }
 
-    public function destroy(Request $request, CartItem $cartItem): JsonResponse
+    public function destroy(Request $request, int $branch, CartItem $cartItem): JsonResponse
     {
         if (! $this->isMember($request)) {
             return $this->forbiddenResponse();
         }
 
-        if ($cartItem->user_id !== $request->user()->id) {
+        $this->validateBranch($branch);
+
+        if ($cartItem->user_id !== $request->user()->id || $cartItem->store_id !== $branch) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Not found.',
@@ -101,18 +108,19 @@ class CartController extends Controller
         ]);
     }
 
-    public function checkout(CheckoutCartRequest $request, OrderService $orderService): JsonResponse
+    public function checkout(CheckoutCartRequest $request, int $branch, OrderService $orderService): JsonResponse
     {
         if (! $this->isMember($request)) {
             return $this->forbiddenResponse();
         }
 
+        $this->validateBranch($branch);
+
         $data = $request->validated();
-        $storeId = (int) $data['store_id'];
 
         $cartItems = CartItem::query()
             ->where('user_id', $request->user()->id)
-            ->where('store_id', $storeId)
+            ->where('store_id', $branch)
             ->get();
 
         if ($cartItems->isEmpty()) {
@@ -123,10 +131,10 @@ class CartController extends Controller
         }
 
         try {
-            $order = DB::transaction(function () use ($request, $data, $storeId, $cartItems, $orderService) {
+            $order = DB::transaction(function () use ($request, $data, $branch, $cartItems, $orderService) {
                 $order = $orderService->createOrder([
                     'type' => 'online',
-                    'store_id' => $storeId,
+                    'store_id' => $branch,
                     'customer_id' => $request->user()->id,
                     'payment_method' => $data['payment_method'] ?? 'cod',
                     'shipping_name' => $data['shipping_name'],
@@ -233,5 +241,14 @@ class CartController extends Controller
             'status' => 'error',
             'message' => 'Only members can manage carts.',
         ], 403);
+    }
+
+    private function validateBranch(int $branch): void
+    {
+        $branch = \App\Models\Store::query()->whereKey($branch)->first();
+
+        if (! $branch) {
+            abort(404, 'Branch not found.');
+        }
     }
 }
