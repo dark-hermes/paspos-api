@@ -100,6 +100,7 @@ tests/
     StockMovementApiTest.php
 bruno/
   paspos/
+    member-branches/
     member-catalog/
     member-cart/
 ```
@@ -357,6 +358,7 @@ Semua endpoint API menggunakan prefix `/api`.
 
 | Method | Endpoint | Keterangan |
 | --- | --- | --- |
+| GET | `/api/member/branches` | List cabang untuk dipilih user |
 | GET | `/api/member/{branch}/catalog/products` | List produk publik per cabang |
 | GET | `/api/member/{branch}/catalog/products/{product}` | Detail produk publik |
 | GET | `/api/member/{branch}/catalog/categories` | List kategori publik per cabang |
@@ -862,6 +864,7 @@ bruno/paspos/
   products/            -> List/Create/Get/Update/Delete Product
   inventories/         -> List/Create/Get/Update/Delete Inventory
   stock-movements/     -> List/Create/Get/Update/Delete Stock Movement
+  member-branches/     -> List Branch untuk pemilihan cabang (public)
   member-catalog/      -> List Products/Detail Categories/Brands per cabang (public)
   member-cart/         -> Get/Add/Remove/Checkout Cart per cabang (private)
   member-addresses/    -> List/Create/Get/Update/Delete Address

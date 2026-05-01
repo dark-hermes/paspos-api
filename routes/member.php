@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\Member\AddressController;
+use App\Http\Controllers\Member\BranchController;
 use App\Http\Controllers\Member\CartController;
 use App\Http\Controllers\Member\CatalogController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('branches', [BranchController::class, 'index']);
 
 // PUBLIC: Catalog browsing without authentication
 Route::prefix('{branch}')->group(function (): void {

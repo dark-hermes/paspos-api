@@ -9,6 +9,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+it('returns only branch stores for public branch selection', function () {
+    $branchStore = Store::factory()->create(['type' => 'branch']);
+    $mainStore = Store::factory()->create(['type' => 'main']);
+
+    $response = $this->getJson('/api/member/branches');
+
+    $response->assertOk()
+        ->assertJsonPath('status', 'success')
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $branchStore->id)
+        ->assertJsonMissing(['id' => $mainStore->id]);
+});
+
 it('returns 404 for non-existent branch in catalog', function () {
     $this->getJson('/api/member/999/catalog/products')
         ->assertNotFound();
@@ -37,7 +50,7 @@ it('allows public access to catalog without authentication', function () {
         'is_active' => true,
     ]);
 
-    $response = $this->getJson('/api/member/' . $store->id . '/catalog/products');
+    $response = $this->getJson('/api/member/'.$store->id.'/catalog/products');
 
     $response->assertOk()
         ->assertJsonPath('status', 'success')
@@ -87,10 +100,10 @@ it('scopes products catalog to the selected branch only', function () {
         'is_active' => true,
     ]);
 
-    $responseA = $this->getJson('/api/member/' . $storeA->id . '/catalog/products');
+    $responseA = $this->getJson('/api/member/'.$storeA->id.'/catalog/products');
     $responseA->assertOk()->assertJsonPath('data.0.stock', 25);
 
-    $responseB = $this->getJson('/api/member/' . $storeB->id . '/catalog/products');
+    $responseB = $this->getJson('/api/member/'.$storeB->id.'/catalog/products');
     $responseB->assertOk()->assertJsonPath('data.0.stock', 100);
 });
 
@@ -131,14 +144,14 @@ it('scopes categories and brands to the selected branch', function () {
         'is_active' => true,
     ]);
 
-    $categoriesResponse = $this->getJson('/api/member/' . $storeA->id . '/catalog/categories');
+    $categoriesResponse = $this->getJson('/api/member/'.$storeA->id.'/catalog/categories');
 
     $categoriesResponse->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.name', 'Makanan')
         ->assertJsonPath('data.0.products_count', 1);
 
-    $brandsResponse = $this->getJson('/api/member/' . $storeA->id . '/catalog/brands');
+    $brandsResponse = $this->getJson('/api/member/'.$storeA->id.'/catalog/brands');
 
     $brandsResponse->assertOk()
         ->assertJsonCount(1, 'data')
@@ -181,13 +194,13 @@ it('supports search across products by name, sku, barcode, brand, and category',
         'is_active' => true,
     ]);
 
-    $response = $this->getJson('/api/member/' . $store->id . '/catalog/products?search=Indomie');
+    $response = $this->getJson('/api/member/'.$store->id.'/catalog/products?search=Indomie');
     $response->assertOk()->assertJsonCount(1, 'data');
 
-    $response2 = $this->getJson('/api/member/' . $store->id . '/catalog/products?search=Indofood');
+    $response2 = $this->getJson('/api/member/'.$store->id.'/catalog/products?search=Indofood');
     $response2->assertOk()->assertJsonCount(1, 'data');
 
-    $response3 = $this->getJson('/api/member/' . $store->id . '/catalog/products?search=Makanan');
+    $response3 = $this->getJson('/api/member/'.$store->id.'/catalog/products?search=Makanan');
     $response3->assertOk()->assertJsonCount(1, 'data');
 });
 
@@ -210,7 +223,7 @@ it('shows only active inventory products in the catalog', function () {
         'is_active' => false,
     ]);
 
-    $response = $this->getJson('/api/member/' . $store->id . '/catalog/products');
+    $response = $this->getJson('/api/member/'.$store->id.'/catalog/products');
 
     $response->assertOk()
         ->assertJsonCount(1, 'data')
