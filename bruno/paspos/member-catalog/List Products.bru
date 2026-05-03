@@ -5,11 +5,15 @@ meta {
 }
 
 get {
-  url: "{{baseUrl}}/api/member/{{branchId}}/catalog/products"
+  url: {{baseUrl}}/api/member/{{branchId}}/catalog/products
   body: none
   auth: none
 }
 
-query {
+params:query {
   ~search: 
+}
+
+vars:pre-request {
+  branchId: 1
 }

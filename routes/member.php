@@ -4,6 +4,7 @@ use App\Http\Controllers\Member\AddressController;
 use App\Http\Controllers\Member\BranchController;
 use App\Http\Controllers\Member\CartController;
 use App\Http\Controllers\Member\CatalogController;
+use App\Http\Controllers\Member\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('branches', [BranchController::class, 'index']);
@@ -21,6 +22,7 @@ Route::prefix('{branch}')->group(function (): void {
 // PRIVATE: Requires authentication
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('addresses', AddressController::class);
+    Route::apiResource('transactions', TransactionController::class)->only(['index', 'show']);
 
     Route::prefix('{branch}')->group(function (): void {
         Route::get('cart', [CartController::class, 'index']);

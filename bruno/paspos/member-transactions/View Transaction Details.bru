@@ -1,0 +1,15 @@
+meta {
+  name: "View Transaction Details"
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/member/transactions/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}

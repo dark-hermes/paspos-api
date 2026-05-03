@@ -5,11 +5,11 @@ meta {
 }
 
 get {
-  url: "{{baseUrl}}/api/member/branches"
+  url: {{baseUrl}}/api/member/branches
   body: none
   auth: none
 }
 
-query {
+params:query {
   ~search: 
 }

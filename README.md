@@ -384,6 +384,18 @@ Semua endpoint API menggunakan prefix `/api`.
 | DELETE | `/api/member/{branch}/cart/{cartItem}` | Hapus item dari keranjang |
 | POST | `/api/member/{branch}/cart/checkout` | Proses checkout menjadi pesanan |
 
+#### Transaction Resource
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| GET | `/api/member/transactions` | Lihat riwayat transaksi member (dengan filter optional) |
+| GET | `/api/member/transactions/{transaction}` | Detail transaksi |
+
+Query Parameters untuk GET `/api/member/transactions`:
+- `branch` - Filter by branch/store ID
+- `payment_status` - Filter by payment status (`paid`, `unpaid`, `partial`)
+- `type` - Filter by order type (`online`, `pos`)
+
 ## Aturan Otorisasi Role
 
 ### Store CRUD

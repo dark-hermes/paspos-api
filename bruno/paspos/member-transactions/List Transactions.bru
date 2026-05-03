@@ -1,0 +1,21 @@
+meta {
+  name: "List Member Transactions"
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/member/transactions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  branch: {{branchId}}
+  payment_status: paid
+  type: online
+}
