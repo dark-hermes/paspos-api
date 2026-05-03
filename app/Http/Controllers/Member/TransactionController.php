@@ -32,6 +32,11 @@ class TransactionController extends Controller
             $query->where('type', $request->query('type'));
         }
 
+        // Filter by status (completed, pending, etc.)
+        if ($request->has('status')) {
+            $query->where('status', $request->query('status'));
+        }
+
         return response()->json([
             'status' => 'success',
             'data' => MemberTransactionResource::collection($query->paginate(15)),
