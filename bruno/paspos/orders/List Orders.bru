@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/orders?store_id={{storeId}}&payment_status=paid
+  url: {{baseUrl}}/api/orders?store_id={{storeId}}&payment_status=paid&start_date={{startDate}}&end_date={{endDate}}
   body: none
   auth: bearer
 }
@@ -17,4 +17,6 @@ auth:bearer {
 params:query {
   store_id: {{storeId}}
   payment_status: paid
+  start_date: {{startDate}}
+  end_date: {{endDate}}
 }

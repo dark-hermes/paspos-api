@@ -2,23 +2,25 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Store;
-use App\Models\Product;
-use App\Models\ProductCategory;
 use App\Models\Brand;
 use App\Models\Inventory;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\Store;
+use App\Models\User;
 use App\Services\OrderService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class OrderTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $admin;
+
     private Store $store;
+
     private Order $order;
 
     protected function setUp(): void
@@ -62,7 +64,7 @@ class OrderTest extends TestCase
         $response = $this->actingAs($this->admin)->getJson('/api/orders');
 
         $response->assertStatus(200)
-                 ->assertJsonPath('data.0.id', $this->order->id);
+            ->assertJsonPath('data.0.id', $this->order->id);
     }
 
     public function test_can_filter_orders_by_store()
@@ -70,7 +72,7 @@ class OrderTest extends TestCase
         $response = $this->actingAs($this->admin)->getJson('/api/orders?store_id=' . $this->store->id);
 
         $response->assertStatus(200)
-                 ->assertJsonCount(1, 'data');
+            ->assertJsonCount(1, 'data');
     }
 
     public function test_can_filter_orders_by_payment_status()
@@ -78,12 +80,43 @@ class OrderTest extends TestCase
         $response = $this->actingAs($this->admin)->getJson('/api/orders?payment_status=paid');
 
         $response->assertStatus(200)
-                 ->assertJsonCount(1, 'data');
+            ->assertJsonCount(1, 'data');
 
         $response = $this->actingAs($this->admin)->getJson('/api/orders?payment_status=unpaid');
 
         $response->assertStatus(200)
-                 ->assertJsonCount(0, 'data');
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_can_filter_orders_by_date_range()
+    {
+        $rangeDate = now()->subDays(5);
+
+        $inRangeOrder = Order::factory()->create([
+            'store_id' => $this->store->id,
+            'created_at' => $rangeDate->copy()->setTime(10, 0),
+            'updated_at' => $rangeDate->copy()->setTime(10, 0),
+        ]);
+
+        Order::factory()->create([
+            'store_id' => $this->store->id,
+            'created_at' => $rangeDate->copy()->subDays(2)->setTime(10, 0),
+            'updated_at' => $rangeDate->copy()->subDays(2)->setTime(10, 0),
+        ]);
+
+        Order::factory()->create([
+            'store_id' => $this->store->id,
+            'created_at' => $rangeDate->copy()->addDays(2)->setTime(10, 0),
+            'updated_at' => $rangeDate->copy()->addDays(2)->setTime(10, 0),
+        ]);
+
+        $response = $this->actingAs($this->admin)->getJson(
+            '/api/orders?start_date=' . $rangeDate->toDateString() . '&end_date=' . $rangeDate->toDateString()
+        );
+
+        $response->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $inRangeOrder->id);
     }
 
     public function test_can_show_order_detail()
@@ -91,40 +124,46 @@ class OrderTest extends TestCase
         $response = $this->actingAs($this->admin)->getJson('/api/orders/' . $this->order->id);
 
         $response->assertStatus(200)
-                 ->assertJsonPath('data.order_number', $this->order->order_number)
-                 ->assertJsonStructure([
-                     'data' => [
-                         'id', 'order_number', 'type', 'total_amount',
-                         'payment_status', 'status', 'items', 'payments'
-                     ]
-                 ]);
+            ->assertJsonPath('data.order_number', $this->order->order_number)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'order_number',
+                    'type',
+                    'total_amount',
+                    'payment_status',
+                    'status',
+                    'items',
+                    'payments',
+                ],
+            ]);
     }
 
     public function test_branch_admin_only_sees_their_store_orders()
     {
         $storeA = Store::factory()->create();
         $storeB = Store::factory()->create();
-        
+
         $adminA = User::factory()->create(['role' => 'branch_admin', 'store_id' => $storeA->id]);
-        
+
         Order::factory()->count(3)->create(['store_id' => $storeA->id]);
         Order::factory()->count(2)->create(['store_id' => $storeB->id]);
-        
+
         $response = $this->actingAs($adminA)->getJson('/api/orders');
-        
+
         $response->assertStatus(200)
-                 ->assertJsonCount(3, 'data');
+            ->assertJsonCount(3, 'data');
     }
 
     public function test_branch_admin_cannot_show_other_store_order()
     {
         $storeA = Store::factory()->create();
         $storeB = Store::factory()->create();
-        
+
         $adminA = User::factory()->create(['role' => 'branch_admin', 'store_id' => $storeA->id]);
         $orderB = Order::factory()->create(['store_id' => $storeB->id]);
-        
+
         $this->actingAs($adminA)->getJson('/api/orders/' . $orderB->id)
-             ->assertForbidden();
+            ->assertForbidden();
     }
 }

@@ -341,11 +341,18 @@ Semua endpoint API menggunakan prefix `/api`.
 | --- | --- | --- |
 | GET | `/api/pos/products` | Cari produk untuk POS (barcode/name/brand) |
 | POST | `/api/pos/orders` | Buat pesanan POS (Cash/Pay Later) |
-| GET | `/api/orders` | List semua pesanan (filter store/payment_status) |
+| GET | `/api/orders` | List semua pesanan (filter store/payment_status/date range) |
 | GET | `/api/orders/{id}` | Detail pesanan + items |
 | PATCH | `/api/orders/{order}/shipping` | Update biaya ongkir & kurir (Online Order) |
 | PATCH | `/api/orders/{order}/status` | Update status pesanan (Online Order) |
 | POST | `/api/orders/{order}/complete-cod` | Selesaikan pembayaran COD |
+
+Query Parameters untuk GET `/api/orders`:
+- `store_id` - Filter by store ID, hanya berlaku untuk `main_admin`
+- `customer_id` - Filter by customer ID
+- `payment_status` - Filter by payment status (`paid`, `unpaid`, `partial`)
+- `start_date` - Filter order mulai tanggal ini (`YYYY-MM-DD`)
+- `end_date` - Filter order sampai tanggal ini (`YYYY-MM-DD`)
 
 #### Payment Resource (`main_admin`, `branch_admin`, `cashier`)
 

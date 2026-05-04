@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\OrderIndexRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(OrderIndexRequest $request): JsonResponse
     {
         $user = $request->user();
-        
+
         $query = Order::query()
             ->with(['store', 'customer', 'cashier'])
             ->latest();
@@ -33,6 +34,14 @@ class OrderController extends Controller
 
         if ($request->has('payment_status')) {
             $query->where('payment_status', $request->query('payment_status'));
+        }
+
+        if ($request->filled('start_date')) {
+            $query->where('created_at', '>=', Carbon::parse($request->query('start_date'))->startOfDay());
+        }
+
+        if ($request->filled('end_date')) {
+            $query->where('created_at', '<=', Carbon::parse($request->query('end_date'))->endOfDay());
         }
 
         return response()->json([
