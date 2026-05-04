@@ -307,9 +307,11 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user()->load('store');
+
         return response()->json([
             'status' => 'success',
-            'data' => new AuthUserResource($request->user()),
+            'data' => new AuthUserResource($user),
         ]);
     }
 
@@ -539,7 +541,7 @@ class AuthController extends Controller
     {
         $maxAttempts = (int) config('services.whatsapp.otp_rate_limit_max_attempts', 1);
         $decaySeconds = (int) config('services.whatsapp.otp_rate_limit_decay_seconds', 60);
-        $rateLimitKey = 'otp:'.$purpose.':'.$phone;
+        $rateLimitKey = 'otp:' . $purpose . ':' . $phone;
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, $maxAttempts)) {
             $retryAfter = RateLimiter::availableIn($rateLimitKey);
@@ -595,7 +597,7 @@ class AuthController extends Controller
     {
         $maxAttempts = 1; // Rate limit max attempts
         $decaySeconds = 60; // Rate limit decay seconds
-        $rateLimitKey = 'email_otp:'.$purpose.':'.$email;
+        $rateLimitKey = 'email_otp:' . $purpose . ':' . $email;
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, $maxAttempts)) {
             $retryAfter = RateLimiter::availableIn($rateLimitKey);

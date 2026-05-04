@@ -10,8 +10,6 @@ erDiagram
         string name UK
         string address "Nullable"
         enum type "main, branch"
-        timestamp created_at
-        timestamp updated_at
     }
 
     USERS {
@@ -22,11 +20,7 @@ erDiagram
         string phone UK "Nullable"
         string password
         enum role "main_admin, branch_admin, cashier, member"
-        timestamp email_verified_at "Nullable"
-        timestamp phone_verified_at "Nullable"
         string avatar_path "Nullable"
-        timestamp created_at
-        timestamp updated_at
     }
 
     ADDRESSES {
@@ -34,27 +28,20 @@ erDiagram
         bigint user_id FK
         string name
         text address
-        string notes "Nullable"
         string receiver_name
         string receiver_phone
         boolean is_default
-        timestamp created_at
-        timestamp updated_at
     }
 
     PRODUCT_CATEGORIES {
         bigint id PK
         string name UK
-        timestamp created_at
-        timestamp updated_at
     }
 
     BRANDS {
         bigint id PK
         string name UK
         string logo_path "Nullable"
-        timestamp created_at
-        timestamp updated_at
     }
 
     PRODUCTS {
@@ -66,22 +53,28 @@ erDiagram
         string sku UK
         string image_path "Nullable"
         string unit
+        decimal weight "Nullable. Satuan gram"
         text description "Nullable"
-        timestamp created_at
-        timestamp updated_at
     }
 
     INVENTORIES {
         bigint id PK
-        bigint store_id FK "Composite UK (store_id, product_id)"
-        bigint product_id FK "Composite UK (store_id, product_id)"
-        decimal stock "Default 0"
-        decimal purchase_price "Default 0"
-        decimal selling_price "Default 0"
-        unsigned_tinyint discount_percentage "Default 0"
-        decimal min_stock "Default 0"
-        timestamp created_at
-        timestamp updated_at
+        bigint store_id FK "Composite UK"
+        bigint product_id FK "Composite UK"
+        integer stock
+        decimal purchase_price
+        decimal selling_price
+        unsigned_tinyint discount_percentage
+        integer min_stock
+        boolean is_active "Default true"
+    }
+
+    CART_ITEMS {
+        bigint id PK
+        bigint user_id FK "Composite UK"
+        bigint store_id FK "Composite UK"
+        bigint product_id FK "Composite UK"
+        integer quantity
     }
 
     STOCK_MOVEMENTS {
@@ -89,32 +82,26 @@ erDiagram
         bigint src_store_id FK "Nullable"
         bigint dest_store_id FK "Nullable"
         bigint product_id FK
-        decimal quantity
+        integer quantity
         enum type "in, out, transfer"
         string title
         string note "Nullable"
-        timestamp created_at
-        timestamp updated_at
     }
 
     ORDERS {
         bigint id PK
         string order_number UK
         enum type "pos, online"
-        bigint store_id FK "Lokasi toko pemroses"
-        bigint customer_id FK "Nullable. Wajib jika utang/online"
-        bigint cashier_id FK "Nullable. Wajib untuk POS"
-        decimal total_amount "Total tagihan akhir"
+        bigint store_id FK
+        bigint customer_id FK "Nullable"
+        bigint cashier_id FK "Nullable"
+        decimal total_amount
+        decimal shipping_fee "Default 0"
+        string courier_name "Nullable"
         enum payment_method "cash, transfer, qris, cod, pay_later"
         enum payment_status "paid, unpaid, partial"
         enum status "completed, pending, processing, shipped, delivered, cancelled"
-        string shipping_name "Nullable Wajib diisi jika type = online"
-        string shipping_receiver_name "Nullable Wajib diisi jika type = online"
-        string shipping_receiver_phone "Nullable Wajib diisi jika type = online"
-        text shipping_address "Nullable Wajib diisi jika type = online"
-        string shipping_notes "Nullable Wajib diisi jika type = online"
-        timestamp created_at
-        timestamp updated_at
+        text shipping_address "Nullable"
     }
 
     ORDER_ITEMS {
@@ -122,53 +109,67 @@ erDiagram
         bigint order_id FK
         bigint product_id FK
         integer quantity
-        decimal base_cost "Harga modal saat transaksi (Immutable)"
-        decimal unit_price "Harga jual saat transaksi terjadi (Immutable)"
+        decimal base_cost "HPP saat transaksi terjadi"
+        decimal unit_price "Harga jual saat transaksi terjadi"
         decimal subtotal
     }
 
     PAYMENTS {
         bigint id PK
-        bigint order_id FK "Referensi ke tagihan pesanan"
-        bigint cashier_id FK "Penerima dana"
-        decimal amount "Uang nyata yang masuk"
+        bigint order_id FK
+        bigint cashier_id FK
+        decimal amount
         enum payment_method "cash, transfer, qris"
         string note "Nullable"
-        timestamp created_at
     }
 
-    PHONE_VERIFICATION_TOKENS {
+    SUPPLIERS {
         bigint id PK
-        string phone
-        string purpose
-        string token
-        timestamp expires_at
-        timestamp created_at
+        string name UK
+        string phone "Nullable"
+        string address "Nullable"
+        string email "Nullable"
     }
 
-    EMAIL_VERIFICATION_TOKENS {
+    PURCHASES {
         bigint id PK
-        string email
-        string purpose
-        string token
-        timestamp expires_at
+        string purchase_number UK
+        bigint store_id FK "Gudang penerima barang"
+        bigint supplier_id FK
+        bigint admin_id FK "Pembuat/penerima pesanan"
+        decimal total_amount
+        enum status "pending, received, cancelled"
         timestamp created_at
         timestamp updated_at
     }
 
-    %% Relationships
-    STORES ||--o{ USERS : "employs (admin/cashier)"
+    PURCHASE_ITEMS {
+        bigint id PK
+        bigint purchase_id FK
+        bigint product_id FK
+        integer quantity
+        decimal purchase_price "Harga beli dari supplier"
+        decimal subtotal
+    }
+
+    %% Relationships - Identity & Master
+    STORES ||--o{ USERS : "employs"
     USERS ||--o{ ADDRESSES : "owns"
     PRODUCT_CATEGORIES ||--o{ PRODUCTS : "categorizes"
     BRANDS ||--o{ PRODUCTS : "brands"
     
+    %% Relationships - E-commerce & Logistik
+    USERS ||--o{ CART_ITEMS : "has_in_cart"
+    STORES ||--o{ CART_ITEMS : "cart_location"
+    PRODUCTS ||--o{ CART_ITEMS : "added_to"
+    
     STORES ||--o{ INVENTORIES : "holds"
     PRODUCTS ||--o{ INVENTORIES : "stocked_as"
-    
     STORES ||--o{ STOCK_MOVEMENTS : "dispatches (src)"
     STORES ||--o{ STOCK_MOVEMENTS : "receives (dest)"
     PRODUCTS ||--o{ STOCK_MOVEMENTS : "tracks"
     
+    %% Relationships - Sales
     STORES ||--o{ ORDERS : "fulfills"
     USERS ||--o{ ORDERS : "makes (customer)"
     USERS ||--o{ ORDERS : "processes (cashier)"
@@ -176,7 +177,11 @@ erDiagram
     PRODUCTS ||--o{ ORDER_ITEMS : "sold_in"
     ORDERS ||--o{ PAYMENTS : "paid_via"
     USERS ||--o{ PAYMENTS : "received_by"
-    
-    USERS |o--o{ PHONE_VERIFICATION_TOKENS : "verifies_phone"
-    USERS |o--o{ EMAIL_VERIFICATION_TOKENS : "verifies_email"
+
+    %% Relationships - Purchasing (Inbound)
+    STORES ||--o{ PURCHASES : "receives_purchase"
+    SUPPLIERS ||--o{ PURCHASES : "supplies"
+    USERS ||--o{ PURCHASES : "managed_by (admin)"
+    PURCHASES ||--o{ PURCHASE_ITEMS : "contains"
+    PRODUCTS ||--o{ PURCHASE_ITEMS : "purchased_as"
 ```

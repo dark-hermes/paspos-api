@@ -22,6 +22,8 @@ class AuthUserResource extends JsonResource
             'email' => $this->email,
             'avatar_url' => $this->avatar_path ? Storage::disk('public')->url($this->avatar_path) : null,
             'phone_verified_at' => $this->phone_verified_at?->toIso8601String(),
+            'store_id' => $this->store_id,
+            'store' => new \App\Http\Resources\StoreResource($this->whenLoaded('store')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
