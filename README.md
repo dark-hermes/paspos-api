@@ -492,11 +492,19 @@ POS dirancang untuk transaksi langsung di toko.
 - Stok langsung di-reserve saat order dibuat.
 - Jika tidak dibayar dalam 24 jam, sistem akan menjalankan job `orders:cancel-expired` untuk membatalkan order dan mengembalikan stok.
 
-### 3. Status Keuangan (Payment Status)
-Status pembayaran dikelola secara otomatis oleh `PaymentObserver`:
-- `unpaid`: Belum ada pembayaran.
-- `partial`: Total bayar < total tagihan.
-- `paid`: Total bayar >= total tagihan.
+### 3. Status Keuangan (Payment Status) & Sistem Piutang (Utang)
+Sistem tidak memiliki tabel khusus untuk "utang". Piutang (utang member) dikalkulasi secara real-time berdasarkan pesanan yang berstatus belum lunas.
+
+**Pencatatan & Status Pembayaran:**
+Status pembayaran dikelola secara otomatis oleh `PaymentObserver` ketika kasir mencatat pembayaran melalui endpoint `/api/payments`:
+- `unpaid`: Belum ada pembayaran yang masuk. Seluruh tagihan pesanan dihitung sebagai utang.
+- `partial`: Total pembayaran masuk > 0 namun masih di bawah total tagihan (`total_amount`). Selisih tagihan dihitung sebagai utang.
+- `paid`: Total pembayaran >= total tagihan. Utang dianggap lunas.
+
+**Cara Member Mengetahui Utangnya:**
+- Member dapat melihat riwayat transaksinya dengan mengakses endpoint `GET /api/member/transactions` (sudah terproteksi per user).
+- Member dapat melakukan filter transaksi yang berutang menggunakan query parameter `?payment_status=unpaid` atau `?payment_status=partial`.
+- Sisa utang yang harus dibayar dapat dihitung mandiri oleh frontend aplikasi member dengan cara: mengambil nilai tagihan (`total_amount`) dikurangi dengan jumlah semua angsuran yang telah masuk pada relasi `payments` di response API tersebut.
 
 ### 4. Status Logistik & Transaksi (Order Status)
 Berikut adalah visualisasi transisi status pesanan dari awal hingga selesai:
