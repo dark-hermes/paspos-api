@@ -6,7 +6,7 @@ meta {
 
 patch {
   url: {{baseUrl}}/api/brands/{{brandId}}
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
@@ -15,13 +15,12 @@ auth:bearer {
 }
 
 headers {
-  Content-Type: application/json
+  Accept: application/json
 }
 
-body:json {
-  {
-    "name": "{{brandNameUpdated}}"
-  }
+body:multipart-form {
+  name: {{brandNameUpdated}}
+  ~logo: 
 }
 
 settings {

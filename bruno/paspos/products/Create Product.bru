@@ -14,6 +14,10 @@ auth:bearer {
   token: {{authToken}}
 }
 
+headers {
+  Accept: application/json
+}
+
 body:multipart-form {
   category_id: {{categoryId}}
   brand_id: {{brandId}}

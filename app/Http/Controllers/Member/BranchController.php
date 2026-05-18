@@ -13,7 +13,6 @@ class BranchController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Store::query()
-            ->where('type', 'branch')
             ->latest('id');
 
         if ($request->filled('search')) {
