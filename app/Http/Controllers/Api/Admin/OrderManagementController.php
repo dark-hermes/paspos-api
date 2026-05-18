@@ -69,8 +69,12 @@ class OrderManagementController extends Controller
             $order = DB::transaction(function () use ($order, $data): Order {
                 $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
-                if ($lockedOrder->status !== 'processing') {
+                if ($data['status'] === 'shipped' && $lockedOrder->status !== 'processing') {
                     throw new RuntimeException('Order must be in processing status before it can be shipped.');
+                }
+
+                if ($data['status'] === 'delivered' && $lockedOrder->status !== 'shipped') {
+                    throw new RuntimeException('Order must be in shipped status before it can be delivered.');
                 }
 
                 $lockedOrder->status = $data['status'];
